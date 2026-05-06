@@ -2879,6 +2879,32 @@ function fcAddTrip() {
   setTimeout(() => { status.style.display='none'; }, 3000);
 }
 
+function fcCalcDuree(t) {
+  try {
+    const p1 = t.depart.split(':').map(Number);
+    const p2 = t.arrivee.split(':').map(Number);
+    let d = (p2[0]*60+p2[1]) - (p1[0]*60+p1[1]);
+    if (d < 0) d += 1440;
+    return d;
+  } catch(e) { return 0; }
+}
+
+function fcAlerteDuree(t, ti) {
+  const duree = fcCalcDuree(t);
+  const similaires = _fcTrips.filter((other, i) => {
+    if (i === ti) return false;
+    if (other.lineNum !== t.lineNum) return false;
+    const dep1 = (t.stops[0] && t.stops[0].name ? t.stops[0].name : '').substring(0,5).toLowerCase();
+    const dep2 = (other.stops[0] && other.stops[0].name ? other.stops[0].name : '').substring(0,5).toLowerCase();
+    return dep1 === dep2;
+  });
+  if (!similaires.length) return null;
+  const durees = similaires.map(fcCalcDuree);
+  const max = Math.max.apply(null, durees);
+  const ecart = max - duree;
+  return { duree, max, ecart };
+}
+
 function fcRenderTripsList() {
   const list = document.getElementById('fc-trips-list');
   const badge = document.getElementById('fc-trips-badge');
@@ -2891,13 +2917,23 @@ function fcRenderTripsList() {
     return;
   }
 
-  list.innerHTML = _fcTrips.map((t, ti) => `
-    <div style="border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden">
+  list.innerHTML = _fcTrips.map((t, ti) => {
+    const duree = fcCalcDuree(t);
+    const alerte = fcAlerteDuree(t, ti);
+    const ecart = alerte ? alerte.ecart : 0;
+    const alerteHtml = ecart >= 5
+      ? `<span style="background:rgba(231,76,60,.2);border:1px solid var(--red);color:var(--red);padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;flex-shrink:0">⚠️ -${ecart}min</span>`
+      : '';
+    const dureeColor = ecart >= 5 ? 'var(--red)' : ecart >= 2 ? 'var(--orange)' : 'var(--muted)';
+    return `
+    <div style="border:1px solid ${ecart>=5?'var(--red)':'var(--border)'};border-radius:8px;margin-bottom:8px;overflow:hidden">
 
-      <!-- En-tête trajet -->
-      <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);cursor:pointer" onclick="fcToggleTrip(${ti})">
+      <!-- En-tete trajet -->
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);cursor:pointer;flex-wrap:wrap" onclick="fcToggleTrip(${ti})">
         <span style="background:${t.lineColor};color:#fff;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;flex-shrink:0">${t.lineNum||'?'}</span>
         <span style="flex:1;font-size:12px;font-weight:700">${t.label}</span>
+        ${alerteHtml}
+        <span style="font-size:11px;color:${dureeColor};flex-shrink:0">${duree}min</span>
         <span style="font-size:11px;color:var(--accent)">${t.depart}→${t.arrivee}</span>
         <span style="font-size:11px;color:var(--muted)">${t.stops.length} arrêts</span>
         <span id="fc-arrow-${ti}" style="color:var(--muted);font-size:12px">▼</span>
@@ -2932,7 +2968,8 @@ function fcRenderTripsList() {
         </div>
 
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function fcToggleTrip(ti) {
