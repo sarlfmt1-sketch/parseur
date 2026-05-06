@@ -1,0 +1,3324 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChronoLigne PRO</title>
+<style>
+:root { --bg:#0a0e1a; --card:#111827; --border:rgba(255,255,255,.08); --accent:#00d4ff; --green:#27ae60; --red:#e74c3c; --text:#e8eaf0; --muted:#6b7280; --orange:#f59e0b; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:var(--bg); color:var(--text); font-family:'Segoe UI',sans-serif; padding-bottom:80px; }
+h1 { color:var(--accent); font-size:20px; margin-bottom:12px; }
+textarea { width:100%; background:#0d1117; border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:monospace; font-size:12px; padding:10px; resize:vertical; }
+
+/* ── ONGLETS ── */
+.tabs-nav { display:flex; background:#0d1117; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:100; }
+.tab-btn { flex:1; padding:14px 6px; font-size:12px; font-weight:700; color:var(--muted); border:none; background:transparent; cursor:pointer; border-bottom:3px solid transparent; transition:.2s; }
+.tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); }
+.tab-pane { display:none; padding:16px; padding-bottom:20px; }
+.tab-pane.active { display:block; }
+
+/* ── FRANCILITÉ ── */
+.franc-card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:14px; }
+.franc-title { font-size:15px; font-weight:700; color:var(--accent); margin-bottom:12px; }
+.franc-input { width:100%; background:#0d1117; border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:15px; padding:10px 12px; margin-bottom:10px; }
+.franc-input:focus { outline:none; border-color:var(--accent); }
+.btn-franc { background:linear-gradient(135deg,#1a6b9a,#0d4f7a); border:1px solid rgba(0,212,255,.4); color:#fff; font-size:15px; font-weight:700; padding:12px; border-radius:10px; width:100%; cursor:pointer; margin-bottom:8px; }
+.btn-franc:active { opacity:.8; }
+.badge-count { background:var(--accent); color:#000; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px; margin-left:6px; }
+.btn { display:inline-flex; align-items:center; justify-content:center; padding:10px 20px; border-radius:8px; border:1px solid var(--border); background:rgba(255,255,255,.05); color:var(--text); font-size:14px; font-weight:700; cursor:pointer; width:100%; margin-top:8px; }
+.btn-sm { padding:7px 12px; font-size:13px; margin-top:0; width:auto; }
+.btn-go { background:#ffc107; color:#000; border-color:#ffc107; font-size:16px; }
+.btn-clear { background:rgba(231,76,60,.15); border-color:var(--red); color:var(--red); margin-top:6px; }
+.toolbar { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; align-items:center; }
+.btn-json { background:rgba(255,193,7,.15); border-color:rgba(255,193,7,.5); color:#ffc107; }
+.btn-export { background:rgba(0,212,255,.15); border-color:var(--accent); color:var(--accent); }
+.btn-nouveau { background:var(--green); border-color:var(--green); color:#000; }
+#result { margin-top:16px; }
+.trip-card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:12px; }
+.trip-header { display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+.badge { padding:2px 8px; border-radius:5px; font-size:12px; font-weight:700; color:#fff; }
+.trip-label { font-size:14px; font-weight:700; }
+.stop-row { display:flex; align-items:center; gap:8px; padding:4px 0; border-bottom:1px solid rgba(255,255,255,.04); font-size:13px; }
+.stop-row:last-child { border-bottom:none; }
+.stop-time { font-family:monospace; font-size:14px; font-weight:700; color:var(--accent); width:50px; flex-shrink:0; }
+.stop-name { flex:1; }
+.stop-name.is-ref { color:var(--red); font-weight:700; }
+.stop-ineo { color:var(--muted); font-size:11px; width:35px; text-align:right; flex-shrink:0; }
+.stop-interval { color:var(--muted); font-size:11px; width:30px; text-align:right; flex-shrink:0; }
+.info-bar { background:rgba(0,212,255,.06); border:1px solid rgba(0,212,255,.2); border-radius:8px; padding:10px 14px; margin-bottom:10px; font-size:13px; }
+.save-bar { background:rgba(39,174,96,.08); border:1px solid rgba(39,174,96,.3); border-radius:8px; padding:10px 14px; margin-bottom:12px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.save-bar input, .save-bar select { background:var(--card); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:14px; font-weight:700; padding:6px 10px; }
+.warn { color:#ffc107; font-size:12px; margin-top:4px; }
+.err { background:rgba(231,76,60,.1); border:1px solid rgba(231,76,60,.3); border-radius:8px; padding:10px; color:var(--red); font-size:13px; margin-top:8px; }
+.toast-msg { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#1e293b; border:1px solid var(--accent); color:var(--text); padding:10px 20px; border-radius:20px; font-size:13px; font-weight:700; z-index:999; opacity:0; transition:opacity .3s; pointer-events:none; white-space:nowrap; }
+.toast-msg.show { opacity:1; }
+.debug-raw { background:#0d1117; border-radius:6px; padding:8px; font-family:monospace; font-size:11px; color:var(--muted); margin-top:8px; white-space:pre-wrap; max-height:200px; overflow-y:auto; }
+.toggle-debug { background:transparent; border:1px solid var(--border); color:var(--muted); font-size:11px; padding:3px 8px; border-radius:4px; cursor:pointer; margin-top:6px; }
+.svc-item-edit { background:transparent; border:1px solid rgba(0,212,255,.3); color:var(--accent); cursor:pointer; font-size:12px; padding:2px 7px; border-radius:4px; }
+.editor-panel { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px; margin-bottom:16px; }
+.editor-trip { margin-bottom:16px; border-bottom:1px solid var(--border); padding-bottom:14px; }
+.editor-trip:last-child { border-bottom:none; margin-bottom:0; padding-bottom:0; }
+.editor-stop { display:flex; align-items:center; gap:6px; padding:3px 0; border-bottom:1px solid rgba(255,255,255,.03); }
+.editor-stop:last-child { border-bottom:none; }
+.editor-stop input[type=time] { background:#0d1117; border:1px solid var(--border); border-radius:5px; color:var(--accent); font-size:13px; font-weight:700; font-family:monospace; padding:3px 6px; width:80px; }
+.editor-stop-name { flex:1; font-size:13px; }
+.editor-stop-name.is-ref { color:var(--red); font-weight:700; }
+.editor-stop-ineo { color:var(--muted); font-size:11px; width:32px; text-align:right; }
+.editor-stop-del { background:transparent; border:none; color:var(--red); cursor:pointer; font-size:14px; padding:0 4px; opacity:.6; }
+.editor-stop-del:hover { opacity:1; }
+.trip-actions { display:flex; gap:4px; margin-left:auto; }
+.trip-btn { background:rgba(255,255,255,.08); border:1px solid var(--border); color:var(--text); cursor:pointer; font-size:13px; padding:3px 8px; border-radius:5px; }
+.trip-btn:hover { background:rgba(255,255,255,.15); }
+.trip-btn-del { border-color:rgba(231,76,60,.4); color:var(--red); }
+.trip-btn-del:hover { background:rgba(231,76,60,.15); }
+.add-panel { background:rgba(39,174,96,.06); border:1px solid rgba(39,174,96,.25); border-radius:10px; padding:14px; margin-bottom:12px; }
+.add-panel label { font-size:11px; color:var(--muted); display:block; margin-bottom:4px; }
+.add-panel select, .add-panel input { width:100%; background:var(--card); border:1px solid var(--border); border-radius:6px; color:var(--text); font-size:14px; font-weight:700; padding:8px 10px; margin-bottom:10px; }
+.add-panel .row { display:flex; gap:10px; }
+.add-panel .row > div { flex:1; }
+.editor-header { display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+.editor-actions { display:flex; gap:8px; margin-top:12px; }
+.svc-list-wrap { background:var(--card); border:1px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:16px; }
+.svc-item { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid var(--border); font-size:13px; gap:8px; }
+.svc-item:last-child { border-bottom:none; }
+.svc-item-num { font-weight:700; color:var(--accent); min-width:55px; }
+.svc-item-jour { font-size:11px; color:var(--muted); min-width:60px; }
+.svc-item-lines { flex:1; color:var(--muted); font-size:11px; }
+.svc-item-del { background:rgba(231,76,60,.15); border:1px solid rgba(231,76,60,.4); color:var(--red); cursor:pointer; font-size:14px; padding:4px 8px; border-radius:6px; flex-shrink:0; }
+.svc-item-del:hover { background:rgba(231,76,60,.3); }
+
+/* ── FSO AUTO ── */
+.fso-panel { background:rgba(0,212,255,.04); border:1px solid rgba(0,212,255,.25); border-radius:10px; padding:16px; margin-bottom:14px; }
+.fso-title { font-size:15px; font-weight:700; color:#00d4ff; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.fso-input { width:100%; background:#0d1117; border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:14px; padding:10px 12px; margin-bottom:8px; }
+.fso-input:focus { outline:none; border-color:var(--accent); }
+.fso-input[type=password] { letter-spacing:2px; }
+.btn-fso { background:linear-gradient(135deg,#005f73,#0a9396); border:1px solid rgba(0,212,255,.5); color:#fff; font-size:15px; font-weight:700; padding:12px; border-radius:10px; width:100%; cursor:pointer; margin-bottom:8px; display:flex; align-items:center; justify-content:center; gap:8px; }
+.btn-fso:active { opacity:.8; }
+.btn-fso:disabled { opacity:.5; cursor:not-allowed; }
+.fso-status { font-size:12px; padding:10px; border-radius:8px; margin-top:8px; display:none; }
+.fso-status.loading { background:rgba(0,212,255,.08); border:1px solid rgba(0,212,255,.2); color:var(--accent); }
+.fso-status.success { background:rgba(39,174,96,.08); border:1px solid rgba(39,174,96,.3); color:#27ae60; }
+.fso-status.error { background:rgba(231,76,60,.08); border:1px solid rgba(231,76,60,.3); color:var(--red); }
+.fso-remember { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); margin-bottom:8px; cursor:pointer; }
+.fso-remember input { accent-color:var(--accent); }
+.fso-date-row { display:flex; gap:8px; }
+.fso-date-row input { flex:1; }
+.fso-date-row button { background:rgba(0,212,255,.1); border:1px solid rgba(0,212,255,.3); color:var(--accent); border-radius:8px; padding:0 12px; cursor:pointer; font-size:18px; white-space:nowrap; }
+.fso-spin { display:inline-block; animation:spin .8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.fso-log { background:#0d1117; border-radius:6px; padding:8px; font-family:monospace; font-size:11px; color:var(--muted); margin-top:8px; max-height:120px; overflow-y:auto; display:none; }
+.fso-separator { display:flex; align-items:center; gap:10px; margin:14px 0; color:var(--muted); font-size:11px; }
+.fso-separator::before, .fso-separator::after { content:''; flex:1; height:1px; background:var(--border); }
+</style>
+</head>
+<body>
+<div id="toast-el" class="toast-msg"></div>
+
+<!-- ONGLETS NAVIGATION -->
+<nav class="tabs-nav">
+  <button class="tab-btn active" onclick="switchTab('francilite')">🚌 Francilité</button>
+  <button class="tab-btn" onclick="switchTab('parseur')">⚙️ Parseur</button>
+</nav>
+
+<!-- ══════════════════════════ ONGLET 1 : FRANCILITÉ ══════════════════════════ -->
+<div id="tab-francilite" class="tab-pane active">
+  <div style="padding:0 0 10px 0">
+    <div class="toolbar">
+      <h1 style="margin:0">🚌 Import Francilité</h1>
+      <span style="font-size:11px;color:var(--muted);margin-left:auto" id="fc-trip-count"></span>
+    </div>
+
+    <!-- ═══ PANNEAU FSO AUTO ═══ -->
+    <div class="fso-panel">
+      <div class="fso-title">FSO Auto Import</div>
+      <input id="fso-user" class="fso-input" type="text" placeholder="Matricule FSO" autocomplete="username">
+      <input id="fso-pass" class="fso-input" type="password" placeholder="Mot de passe FSO" autocomplete="current-password">
+      <label class="fso-remember">
+        <input type="checkbox" id="fso-remember" onchange="fsoToggleRemember()"> Memoriser mes identifiants
+      </label>
+      <div class="fso-date-row">
+        <input id="fso-date" class="fso-input" type="date" style="margin:0">
+        <button onclick="fsoDateToday()" title="Aujourd'hui">Auj.</button>
+        <button onclick="fsoDateNext()" title="Jour suivant">+1j</button>
+      </div>
+      <button class="btn-fso" id="fso-btn" onclick="fsoImport()" style="margin-top:10px">
+        Recuperer mon service FSO
+      </button>
+      <div id="fso-status" class="fso-status"></div>
+      <div id="fso-log" class="fso-log"></div>
+    </div>
+    <div class="fso-separator">ou saisie manuelle</div>
+    <!-- Instructions -->
+    <div style="background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.2);border-radius:8px;padding:12px;margin-bottom:12px;font-size:12px;color:var(--muted)">
+      <b style="color:var(--accent)">Comment faire :</b><br>
+      1. Va sur Francilité → clique sur un service → clique sur <b>Itinéraire</b><br>
+      2. Sélectionne tout le texte (<b>Ctrl+A</b>) et copie (<b>Ctrl+C</b>)<br>
+      3. Colle ci-dessous → clique <b>Ajouter ce trajet</b><br>
+      4. Répète pour chaque service de ta journée<br>
+      5. Clique <b>Créer ma feuille</b> quand tous les trajets sont ajoutés
+    </div>
+
+    <!-- Zone de collage -->
+    <div class="franc-card" style="margin-bottom:10px">
+      <div class="franc-title">📋 Coller un itinéraire Francilité</div>
+      <textarea id="fc-itin-text" rows="8" placeholder="Colle ici le texte de la page Itinéraire Francilité...
+Ex:
+13:32 > GARE DE NEUVILLE UNIVERSITÉ - 269 [GARE DE NEUV]
+13:34 > GAY LUSSAC - 289 [GAY LUSSAC]
+..."></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn btn-go" style="flex:1" onclick="fcAddTrip()">➕ Ajouter ce trajet</button>
+        <button class="btn btn-clear" style="width:80px" onclick="document.getElementById('fc-itin-text').value=''">🗑</button>
+      </div>
+      <div id="fc-add-status" style="display:none;margin-top:8px;font-size:12px;padding:8px;border-radius:6px"></div>
+    </div>
+
+    <!-- Numéro de service -->
+    <div class="franc-card" style="margin-bottom:10px">
+      <div class="franc-title">⚙️ Numéro de service</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="fc-svc-num" class="franc-input" type="text" placeholder="Ex: 112" style="margin:0;flex:1">
+        <select id="fc-svc-jour" class="franc-input" style="margin:0;width:130px">
+          <option value="semaine">Semaine</option>
+          <option value="samedi">Samedi</option>
+          <option value="dimanche">Dimanche</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Liste des trajets ajoutés -->
+    <div class="franc-card" style="margin-bottom:10px">
+      <div class="franc-title">📝 Trajets de la journée <span class="badge-count" id="fc-trips-badge">0</span></div>
+      <div id="fc-trips-list" style="font-size:12px;color:var(--muted)">Aucun trajet ajouté</div>
+    </div>
+
+    <!-- Bouton créer feuille -->
+    <button class="btn-franc" id="fc-create-btn" onclick="fcCreateFeuille()" style="display:none">
+      ✅ Créer ma feuille de service
+    </button>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════ ONGLET 3 : PARSEUR ══════════════════════════ -->
+<div id="tab-parseur" class="tab-pane">
+  <div style="padding:0 0 10px 0">
+    <div class="toolbar">
+      <h1 style="margin:0">⚙️ Parseur INEO</h1>
+      <button class="btn btn-sm btn-nouveau" onclick="showParsePanel()">+ Nouveau</button>
+      <button class="btn btn-sm" id="btn-add-manual" onclick="toggleAddPanel()" style="background:rgba(39,174,96,.15);border-color:rgba(39,174,96,.5);color:#27ae60;display:none">+ Trajet</button>
+      <button class="btn btn-sm btn-export" onclick="exportJSON()" title="Exporter JSON">⬇ JSON</button>
+      <button class="btn btn-sm btn-json" onclick="document.getElementById('import-file-parseur').click()" title="Importer JSON">📂 JSON</button>
+      <input type="file" id="import-file-parseur" accept=".json" style="display:none" onchange="importJSON(event)">
+      <span id="svc-count" style="font-size:12px;color:var(--muted);margin-left:auto"></span>
+    </div>
+    <div id="svc-list-section"></div>
+    <div id="parse-panel" style="display:none">
+      <textarea id="ineo-text" rows="14" placeholder="Collez votre feuille INEO ici..."></textarea>
+      <button class="btn btn-go" onclick="runParse()">⚡ Analyser la feuille</button>
+      <button class="btn btn-clear" onclick="document.getElementById('ineo-text').value='';document.getElementById('result').innerHTML=''">🗑 Effacer</button>
+    </div>
+    <div id="add-trip-panel" style="display:none">
+      <div class="add-panel">
+        <div style="font-size:13px;font-weight:700;color:#27ae60;margin-bottom:10px">+ Ajouter un trajet manuellement</div>
+        <label>1. Choisir la ligne</label>
+        <select id="add-line-sel" onchange="addTripRenderTrips()"><option value="">— Ligne —</option></select>
+        <label>2. Choisir le trajet (sens)</label>
+        <select id="add-trip-sel"><option value="">— Trajet —</option></select>
+        <div class="row">
+          <div><label>3. Heure 1er arrêt</label><input type="time" id="add-first-time" step="60"></div>
+          <div style="max-width:90px"><label>Intervalle</label><input type="number" id="add-interval" value="1" min="1" max="30"></div>
+        </div>
+        <button class="btn btn-nouveau" style="width:100%;margin-top:0" onclick="addTripManual()">✅ Ajouter ce trajet</button>
+      </div>
+    </div>
+    <div id="result"></div>
+  </div>
+</div>
+
+<script>
+const REAL_LINES = [
+  { num:'1201', name:'Gare Pontoise → Gare Cergy-Le Haut', color:'#9b59b6' },
+  { num:'1202', name:'Gare Cergy-Préfecture → Les Beurriers', color:'#e67e22' },
+  { num:'1203', name:'Gare Cergy-Le Haut → Gare Neuville-Université', color:'#f1c40f' },
+  { num:'1206', name:'Gare Pontoise → Gare Cergy-Le Haut', color:'#27ae60' },
+  { num:'1207', name:'Cergy Les Plants → Jouy le Moutier Ecancourt', color:'#e74c3c' },
+  { num:'1208', name:'Gare Cergy-Préfecture → Gare Neuville-Université', color:'#16a085' },
+  { num:'1223', name:'Gare Pontoise → Osny Les Patis', color:'#8e44ad' },
+  { num:'1224', name:'Gare Cergy-Préfecture → Gare Cergy-Saint-Christophe', color:'#2980b9' },
+  { num:'1226', name:'Gare Cergy Préfecture → Gare de Méry sur Oise', color:'#795548' },
+  { num:'1228', name:'Gare Cergy-Préfecture → Saint-Ouen l\'Aumône Rue de L\'équerre', color:'#00bcd4' },
+  { num:'1229', name:'Gare Neuville-Université → Gare Pontoise Canrobert', color:'#26c6da' },
+  { num:'1230', name:'Gare Pontoise → Cergy Les Plants via Les Touleuses', color:'#f48fb1' },
+  { num:'1232', name:'Gare Cergy-Préfecture → Saint-Ouen l\'Aumône Lycée Jean Perrin', color:'#2e7d32' },
+  { num:'1233', name:'Gare Neuville-Université → Gare Pontoise Gal de Gaulle', color:'#388e3c' },
+  { num:'1235', name:'Gare Pontoise Canrobert → ZAC de Puiseux', color:'#c0392b' },
+  { num:'1236', name:'Gare Pontoise → Courdimanche Les Croizettes', color:'#7b1fa2' },
+  { num:'1237', name:'Vauréal La Bussie → Gare Conflans-Fin d\'Oise', color:'#4e342e' },
+  { num:'1238', name:'Cergy Les Plants → Menucourt La Taillette', color:'#d32f2f' },
+  { num:'1239', name:'Gare Cergy-Saint-Christophe → Menucourt Croix du Jubilé', color:'#1a237e' },
+  { num:'1240', name:'Vauréal → Gare Cergy-Saint-Christophe', color:'#1565c0' },
+  { num:'1241', name:'Gare Cergy-Préfecture → Saint-Ouen l\'Aumône Fond de Vaux', color:'#ad1457' },
+  { num:'1242', name:'Gare Cergy-Préfecture → Osny Clinique Sainte Marie', color:'#c62828' },
+];
+
+
+
+const PRELOADED_TRIPS = {
+  '1201': [
+    {
+            direction: 'aller', label: 'Gare de Pontoise → Jules Verne',
+      stops: [
+        {name:'Gare de Pontoise Canrobert', ineo:'279', intervalAfter:2},
+        {name:'Avenue du Premier Dragon', ineo:'43', lat:49.042037764797264, lng:2.0901846705611287, intervalAfter:3},
+        {name:'Lycée Kastler', ineo:'582', lat:49.03704472309345, lng:2.085464952220658, intervalAfter:2},
+        {name:'Gare de Cergy Préfecture - Quai G', ineo:'243', lat:49.03625665854225, lng:2.0805430424262408, intervalAfter:4},
+        {name:'Chemin Dupuis', ineo:'110', lat:49.0364418240476, lng:2.0703107741174596, intervalAfter:1},
+        {name:'La Croix Petit', ineo:'383', lat:49.03687926813901, lng:2.0684742933823435, intervalAfter:1},
+        {name:'Le Ponceau', ineo:'441', lat:49.03839145436428, lng:2.068116755209585, intervalAfter:1},
+        {name:'Les Chênes', ineo:'480', lat:49.040643014466234, lng:2.0692793310154567, intervalAfter:1},
+        {name:'Linandes Vertes', ineo:'561', lat:49.04254699243699, lng:2.06794101590029, intervalAfter:1},
+        {name:'Le Collège', ineo:'426', lat:49.043380355217764, lng:2.062450717006529, intervalAfter:1},
+        {name:'Clos Couturier', ineo:'131', lat:49.04380658387823, lng:2.057684545524493, intervalAfter:1},
+        {name:'La Justice', ineo:'392', lat:49.04452614522783, lng:2.054827046814922, intervalAfter:1},
+        {name:'La Sébille', ineo:'407', lat:49.047749081520244, lng:2.0512270740957157, intervalAfter:1},
+        {name:'Rond-Point Haut Gency', ineo:'778', lat:49.04823260506143, lng:2.045642219396441, intervalAfter:2},
+        {name:'Martelet', ineo:'626', lat:49.04596815525666, lng:2.0395347972677, intervalAfter:1},
+        {name:'Rue du Chemin de Fer', ineo:'784', lat:49.048140670234574, lng:2.0367724025689737, intervalAfter:1},
+        {name:'Gare de Cergy Saint-Christophe RER', ineo:'249', lat:49.04984335225541, lng:2.0338601216853323, intervalAfter:1},
+        {name:'La Constellation', ineo:'378', lat:49.05078548026458, lng:2.031787108402483, intervalAfter:1},
+        {name:'Moulin à Vent', ineo:'651', lat:49.05408004885683, lng:2.02614404185258, intervalAfter:2},
+        {name:'Puiseux', ineo:'742', lat:49.05493531777563, lng:2.017776698077831, intervalAfter:1},
+        {name:'Jules Verne', ineo:'351', lat:49.05424976095698, lng:2.014634943354803, intervalAfter:0},
+      ]
+    },
+    {
+            direction: 'retour', label: 'Jules Verne → Gare de Pontoise',
+      stops: [
+        {name:'Jules Verne', ineo:'351', lat:49.05424976095698, lng:2.014634943354803, intervalAfter:1},
+        {name:'Puiseux', ineo:'741', lat:49.05473337524053, lng:2.0178248273061143, intervalAfter:2},
+        {name:'Moulin à Vent', ineo:'650', lat:49.05388054688531, lng:2.026725572006346, intervalAfter:2},
+        {name:'La Constellation', ineo:'376', lat:49.05151156457876, lng:2.0319183537631007, intervalAfter:1},
+        {name:'Gare de Cergy Saint-Christophe RER', ineo:'255', lat:49.04984335225541, lng:2.0338601216853323, intervalAfter:2},
+        {name:'Rue du Chemin de Fer', ineo:'785', lat:49.04747147216101, lng:2.036493651303485, intervalAfter:2},
+        {name:'Martelet', ineo:'627', lat:49.046565365147096, lng:2.0411471790648132, intervalAfter:1},
+        {name:'Rond-Point Haut Gency', ineo:'777', lat:49.04806629974335, lng:2.046027437937382, intervalAfter:1},
+        {name:'La Sébille', ineo:'408', lat:49.04739681253484, lng:2.0526087861078337, intervalAfter:2},
+        {name:'La Justice', ineo:'391', lat:49.044356803549434, lng:2.0552883863849116, intervalAfter:1},
+        {name:'Clos Couturier', ineo:'130', lat:49.04357373555259, lng:2.0583650213902276, intervalAfter:1},
+        {name:'Le Collège', ineo:'427', lat:49.04340152337474, lng:2.063015857979766, intervalAfter:1},
+        {name:'Linandes Vertes', ineo:'560', lat:49.04223248777325, lng:2.0682593402035825, intervalAfter:1},
+        {name:'Les Chênes', ineo:'481', lat:49.04014250858263, lng:2.069260877432657, intervalAfter:1},
+        {name:'Le Ponceau', ineo:'442', lat:49.038099606008174, lng:2.068077541346136, intervalAfter:1},
+        {name:'La Croix Petit', ineo:'384', lat:49.03674921797911, lng:2.0684235460296447, intervalAfter:1},
+        {name:'Chemin Dupuis', ineo:'111', lat:49.036883391052825, lng:2.0717086330145276, intervalAfter:3},
+        {name:'Gare de Cergy Préfecture - Quai F', ineo:'242', lat:49.03613042912288, lng:2.0810398398755017, intervalAfter:3},
+        {name:'Lycée Kastler', ineo:'581', lat:49.03662082081559, lng:2.085291073193933, intervalAfter:2},
+        {name:'Avenue du Premier Dragon', ineo:'44', lat:49.04293046526921, lng:2.0907062114673147, intervalAfter:1},
+        {name:'Gare de Pontoise Canrobert', ineo:'276', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'aller', label: 'Gare de Pontoise → Saint-Christophe (14 arrêts)',
+      stops: [
+        {name:'Gare de Pontoise Canrobert', ineo:'279', lat:49.04635106345334, lng:2.0932697478429376, intervalAfter:2},
+        {name:'Avenue du Premier Dragon', ineo:'43', lat:49.04203882390841, lng:2.0901883000089647, intervalAfter:3},
+        {name:'Lycée Kastler', ineo:'582', lat:49.03704472309345, lng:2.085464952220658, intervalAfter:2},
+        {name:'Gare de Cergy Préfecture - Quai G', ineo:'243', lat:49.036260451235364, lng:2.0805521635427335, intervalAfter:5},
+        {name:'Chemin Dupuis', ineo:'110', lat:49.0364418240476, lng:2.0703107741174596, intervalAfter:0},
+        {name:'La Croix Petit', ineo:'383', lat:49.03687926813901, lng:2.0684742933823435, intervalAfter:1},
+        {name:'Le Ponceau', ineo:'441', lat:49.03839145436428, lng:2.068116755209585, intervalAfter:1},
+        {name:'Les Chênes', ineo:'480', lat:49.040643014466234, lng:2.0692793310154567, intervalAfter:1},
+        {name:'Linandes Vertes', ineo:'561', lat:49.04254699243699, lng:2.06794101590029, intervalAfter:1},
+        {name:'Le Collège', ineo:'426', lat:49.043380355217764, lng:2.062450717006529, intervalAfter:1},
+        {name:'Clos Couturier', ineo:'131', lat:49.04380658387823, lng:2.057684545524493, intervalAfter:1},
+        {name:'La Justice', ineo:'392', lat:49.04452614522783, lng:2.054827046814922, intervalAfter:1},
+        {name:'La Sébille', ineo:'407', lat:49.047749081520244, lng:2.0512270740957157, intervalAfter:1},
+        {name:'Rond-Point Haut Gency', ineo:'778', lat:49.04823260506143, lng:2.045642219396441, intervalAfter:1},
+        {name:'Martelet', ineo:'626', lat:49.04596815525666, lng:2.0395347972677, intervalAfter:2},
+        {name:'Rue du Chemin de Fer', ineo:'784', lat:49.048140670234574, lng:2.0367724025689737, intervalAfter:2},
+        {name:'Gare de Cergy Saint-Christophe RER', ineo:'252', lat:49.04984335225541, lng:2.0338601216853323, intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Saint-Christophe → Gare de Pontoise (14 arrêts)',
+      stops: [
+        {name:'Gare de Cergy Saint-Christophe RER', ineo:'255', lat:49.04971529366285, lng:2.035282884198387, intervalAfter:1},
+        {name:'Rue du Chemin de Fer', ineo:'785', lat:49.04747147216101, lng:2.036493651303485, intervalAfter:2},
+        {name:'Martelet', ineo:'627', lat:49.046565365147096, lng:2.0411471790648132, intervalAfter:1},
+        {name:'Rond-Point Haut Gency', ineo:'777', lat:49.04806629974335, lng:2.046027437937382, intervalAfter:2},
+        {name:'La Sébille', ineo:'408', lat:49.04739681253484, lng:2.0526087861078337, intervalAfter:2},
+        {name:'La Justice', ineo:'391', lat:49.044356803549434, lng:2.0552883863849116, intervalAfter:0},
+        {name:'Clos Couturier', ineo:'130', lat:49.04357373555259, lng:2.0583650213902276, intervalAfter:1},
+        {name:'Le Collège', ineo:'427', lat:49.04340152337474, lng:2.063015857979766, intervalAfter:1},
+        {name:'Linandes Vertes', ineo:'560', lat:49.04223248777325, lng:2.0682593402035825, intervalAfter:1},
+        {name:'Les Chênes', ineo:'481', lat:49.04014250858263, lng:2.069260877432657, intervalAfter:1},
+        {name:'Le Ponceau', ineo:'442', lat:49.038099606008174, lng:2.068077541346136, intervalAfter:1},
+        {name:'La Croix Petit', ineo:'384', lat:49.03674921797911, lng:2.0684235460296447, intervalAfter:2},
+        {name:'Chemin Dupuis', ineo:'111', lat:49.036883391052825, lng:2.0717086330145276, intervalAfter:3},
+        {name:'Gare de Cergy Préfecture - Quai F', ineo:'242', lat:49.03613042912288, lng:2.0810398398755017, intervalAfter:2},
+        {name:'Lycée Kastler', ineo:'581', lat:49.03662082081559, lng:2.085291073193933, intervalAfter:3},
+        {name:'Avenue du Premier Dragon', ineo:'44', lat:49.04293046526921, lng:2.0907062114673147, intervalAfter:1},
+        {name:'Gare de Pontoise Canrobert', ineo:'276', lat:49.04613754839617, lng:2.093353432533891, intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'aller', label: 'Gare de Pontoise → Moulin à Vent (19 arrêts)',
+      stops: [
+        {name:'Gare de Pontoise Canrobert', ineo:'279', lat:49.04635106345334, lng:2.0932697478429376, intervalAfter:2},
+        {name:'Avenue du Premier Dragon', ineo:'43', lat:49.04203882390841, lng:2.0901883000089647, intervalAfter:3},
+        {name:'Lycée Kastler', ineo:'582', lat:49.03704472309345, lng:2.085464952220658, intervalAfter:2},
+        {name:'Gare de Cergy Préfecture - Quai G', ineo:'243', lat:49.036260451235364, lng:2.0805521635427335, intervalAfter:5},
+        {name:'Chemin Dupuis', ineo:'110', lat:49.0364418240476, lng:2.0703107741174596, intervalAfter:0},
+        {name:'La Croix Petit', ineo:'383', lat:49.03687926813901, lng:2.0684742933823435, intervalAfter:1},
+        {name:'Le Ponceau', ineo:'441', lat:49.03839145436428, lng:2.068116755209585, intervalAfter:1},
+        {name:'Les Chênes', ineo:'480', lat:49.040643014466234, lng:2.0692793310154567, intervalAfter:1},
+        {name:'Linandes Vertes', ineo:'561', lat:49.04254699243699, lng:2.06794101590029, intervalAfter:1},
+        {name:'Le Collège', ineo:'426', lat:49.043380355217764, lng:2.062450717006529, intervalAfter:1},
+        {name:'Clos Couturier', ineo:'131', lat:49.04380658387823, lng:2.057684545524493, intervalAfter:1},
+        {name:'La Justice', ineo:'392', lat:49.04452614522783, lng:2.054827046814922, intervalAfter:1},
+        {name:'La Sébille', ineo:'407', lat:49.047749081520244, lng:2.0512270740957157, intervalAfter:1},
+        {name:'Rond-Point Haut Gency', ineo:'778', lat:49.04823260506143, lng:2.045642219396441, intervalAfter:1},
+        {name:'Martelet', ineo:'626', lat:49.04596815525666, lng:2.0395347972677, intervalAfter:2},
+        {name:'Rue du Chemin de Fer', ineo:'784', lat:49.048140670234574, lng:2.0367724025689737, intervalAfter:2},
+        {name:'Gare de Cergy Saint-Christophe RER', ineo:'252', lat:49.04984335225541, lng:2.0338601216853323, intervalAfter:1},
+        {name:'La Constellation', ineo:'376', lat:49.05151156457876, lng:2.0319183537631007, intervalAfter:1},
+        {name:'Moulin à Vent', ineo:'650', lat:49.05388054688531, lng:2.026725572006346, intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Moulin à Vent → Gare de Pontoise (19 arrêts)',
+      stops: [
+        {name:'Moulin à Vent', ineo:'650', intervalAfter:2},
+        {name:'La Constellation', ineo:'376', intervalAfter:2},
+        {name:'Gare de Cergy Saint-Christophe RER', ineo:'255', lat:49.04971529366285, lng:2.035282884198387, intervalAfter:2},
+        {name:'Rue du Chemin de Fer', ineo:'785', lat:49.04747147216101, lng:2.036493651303485, intervalAfter:2},
+        {name:'Martelet', ineo:'627', lat:49.046565365147096, lng:2.0411471790648132, intervalAfter:1},
+        {name:'Rond-Point Haut Gency', ineo:'777', lat:49.04806629974335, lng:2.046027437937382, intervalAfter:2},
+        {name:'La Sébille', ineo:'408', lat:49.04739681253484, lng:2.0526087861078337, intervalAfter:2},
+        {name:'La Justice', ineo:'391', lat:49.044356803549434, lng:2.0552883863849116, intervalAfter:1},
+        {name:'Clos Couturier', ineo:'130', lat:49.04357373555259, lng:2.0583650213902276, intervalAfter:1},
+        {name:'Le Collège', ineo:'427', lat:49.04340152337474, lng:2.063015857979766, intervalAfter:1},
+        {name:'Linandes Vertes', ineo:'560', lat:49.04223248777325, lng:2.0682593402035825, intervalAfter:1},
+        {name:'Les Chênes', ineo:'481', lat:49.04014250858263, lng:2.069260877432657, intervalAfter:1},
+        {name:'Le Ponceau', ineo:'442', lat:49.038099606008174, lng:2.068077541346136, intervalAfter:1},
+        {name:'La Croix Petit', ineo:'384', lat:49.03674921797911, lng:2.0684235460296447, intervalAfter:2},
+        {name:'Chemin Dupuis', ineo:'111', lat:49.036883391052825, lng:2.0717086330145276, intervalAfter:3},
+        {name:'Gare de Cergy Préfecture - Quai F', ineo:'242', lat:49.03613042912288, lng:2.0810398398755017, intervalAfter:2},
+        {name:'Lycée Kastler', ineo:'581', lat:49.03662082081559, lng:2.085291073193933, intervalAfter:3},
+        {name:'Avenue du Premier Dragon', ineo:'44', lat:49.04293046526921, lng:2.0907062114673147, intervalAfter:1},
+        {name:'Gare de Pontoise Canrobert', ineo:'276', lat:49.04613754839617, lng:2.093353432533891, intervalAfter:0},
+      ]
+    },
+  ],
+  '1202': [
+    {
+      direction: 'aller', label: 'Gare Cergy-Préfecture → Les Beurriers',
+      stops: [
+        {name:'Gare de Cergy Préfecture - Quai K', ineo:'246', lat:49.03561985225602, lng:2.081508174219119, intervalAfter:2},
+        {name:'Les Marjoberts', ineo:'527', lat:49.04118003384147, lng:2.073963742103028, intervalAfter:2},
+        {name:'Marcouville', ineo:'620', lat:49.0493667483497, lng:2.0817252303503766, intervalAfter:2},
+        {name:'Croix Saint Siméon', ineo:'156', lat:49.063628939455754, lng:2.089051750857474, intervalAfter:2},
+        {name:'Normandie', ineo:'661', lat:49.06114491328609, lng:2.090199265877123, intervalAfter:2},
+        {name:'Place de la Paix', ineo:'712', lat:49.058774778591584, lng:2.08915986187433, intervalAfter:2},
+        {name:'Boblingen', ineo:'58', lat:49.06196771706676, lng:2.0881011581501285, intervalAfter:2},
+        {name:'Alsace Bretagne', ineo:'9', lat:49.0628703984531, lng:2.091067487583424, intervalAfter:2},
+        {name:'Hôpital René Dubos', ineo:'326', lat:49.064088971903985, lng:2.094461435941742, intervalAfter:2},
+        {name:'Hôpital Administration', ineo:'324', lat:49.06093919137023, lng:2.0937299839756447, intervalAfter:2},
+        {name:'Maison de Retraite', ineo:'609', lat:49.0603006743887, lng:2.0958987586195033, intervalAfter:2},
+        {name:'Paul Cézanne', ineo:'690', lat:49.05874328300776, lng:2.095887006013539, intervalAfter:2},
+        {name:'Les Beurriers', ineo:'472', lat:49.05801961735898, lng:2.098511342107662, intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Les Beurriers → Gare Cergy-Préfecture',
+      stops: [
+        {name:'Les Beurriers', ineo:'472', lat:49.05801961735898, lng:2.098511342107662, intervalAfter:2},
+        {name:'Maison de Retraite', ineo:'608', lat:49.06046077210783, lng:2.0973885082091526, intervalAfter:2},
+        {name:'Hôpital Administration', ineo:'325', lat:49.061399337075784, lng:2.09399407472793, intervalAfter:2},
+        {name:'Hôpital René Dubos', ineo:'326', lat:49.064088971903985, lng:2.094461435941742, intervalAfter:2},
+        {name:'Alsace Bretagne', ineo:'8', lat:49.06295692959113, lng:2.091911428194743, intervalAfter:2},
+        {name:'Boblingen', ineo:'57', lat:49.061455934816955, lng:2.088142663426095, intervalAfter:2},
+        {name:'Place de la Paix', ineo:'714', lat:49.058667635763925, lng:2.089264253932064, intervalAfter:2},
+        {name:'Normandie', ineo:'660', lat:49.06147335437944, lng:2.090351429420007, intervalAfter:2},
+        {name:'Croix Saint Siméon', ineo:'155', lat:49.063985369126684, lng:2.088891506851325, intervalAfter:2},
+        {name:'Marcouville', ineo:'619', lat:49.05001629320322, lng:2.0812916416739635, intervalAfter:2},
+        {name:'Cergy - Marjobert', ineo:'526', lat:49.04114643395249, lng:2.073517378132682, intervalAfter:2},
+        {name:'Université Des Chênes', ineo:'821', lat:49.03953081247829, lng:2.076001212222628, intervalAfter:2},
+        {name:'Gare de Cergy Préfecture - Quai B', ineo:'238', lat:49.03777323854791, lng:2.078349454806933, intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'aller', label: 'Gare Cergy-Préfecture → Hôpital René Dubos',
+      stops: [
+        {name:'Gare de Cergy Préfecture - Quai K', ineo:'246', lat:49.03561985225602, lng:2.081508174219119, intervalAfter:4},
+        {name:'Les Marjoberts', ineo:'527', lat:49.04118003384147, lng:2.073963742103028, intervalAfter:5},
+        {name:'Marcouville', ineo:'620', lat:49.0493667483497, lng:2.0817252303503766, intervalAfter:3},
+        {name:'Croix Saint Siméon', ineo:'156', lat:49.063628939455754, lng:2.089051750857474, intervalAfter:1},
+        {name:'Normandie', ineo:'661', lat:49.06114491328609, lng:2.090199265877123, intervalAfter:1},
+        {name:'Place de la Paix', ineo:'712', lat:49.058774778591584, lng:2.08915986187433, intervalAfter:2},
+        {name:'Boblingen', ineo:'58', lat:49.06196771706676, lng:2.0881011581501285, intervalAfter:1},
+        {name:'Alsace Bretagne', ineo:'9', lat:49.0628703984531, lng:2.091067487583424, intervalAfter:1},
+        {name:'Hôpital René Dubos', ineo:'326', lat:49.064088971903985, lng:2.094461435941742, intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Hôpital René Dubos → Gare Cergy-Préfecture',
+      stops: [
+        {name:'Hôpital René Dubos', ineo:'326', lat:49.064088971903985, lng:2.094461435941742, intervalAfter:1},
+        {name:'Alsace Bretagne', ineo:'8', lat:49.06295692959113, lng:2.091911428194743, intervalAfter:1},
+        {name:'Boblingen', ineo:'57', lat:49.061455934816955, lng:2.088142663426095, intervalAfter:2},
+        {name:'Place de la Paix', ineo:'714', lat:49.058667635763925, lng:2.089264253932064, intervalAfter:1},
+        {name:'Normandie', ineo:'660', lat:49.06147335437944, lng:2.090351429420007, intervalAfter:1},
+        {name:'Croix Saint Siméon', ineo:'155', lat:49.063985369126684, lng:2.088891506851325, intervalAfter:4},
+        {name:'Marcouville', ineo:'619', lat:49.05001629320322, lng:2.0812916416739635, intervalAfter:4},
+        {name:'Cergy - Marjobert', ineo:'526', lat:49.04114643395249, lng:2.073517378132682, intervalAfter:1},
+        {name:'Université Des Chênes', ineo:'821', lat:49.03953081247829, lng:2.076001212222628, intervalAfter:2},
+        {name:'Gare de Cergy Préfecture - Quai B', ineo:'238', lat:49.03777323854791, lng:2.078349454806933, intervalAfter:0},
+      ]
+    },
+  ],
+  '1203': [
+    {
+      direction: 'aller', label: 'Cergy Le Haut → Gare de Neuville Université',
+      stops: [
+        {name:'Gare de Cergy Le Haut RER', ineo:'228', lat:49.047418909012784, lng:2.0104809167771553, intervalAfter:2},
+        {name:"L'Orangerie", ineo:'564', lat:49.044925491911364, lng:2.010646896624763, intervalAfter:2},
+        {name:'Rond-Point du Golf', ineo:'773', lat:49.039550188679364, lng:2.015855373111285, intervalAfter:2},
+        {name:'Boris Vian', ineo:'68', lat:49.03542508329222, lng:2.0177855341007063, intervalAfter:2},
+        {name:'La Bussie', ineo:'366', lat:49.03283553667758, lng:2.020209018277186, intervalAfter:1},
+        {name:'La Croix Lieu', ineo:'380', lat:49.03052303120944, lng:2.0218477196082714, intervalAfter:1},
+        {name:'La Marnière', ineo:'393', lat:49.02344578095198, lng:2.0221759002562005, intervalAfter:1},
+        {name:'Les Valanchards', ineo:'556', lat:49.02051021058112, lng:2.021598629297742, intervalAfter:2},
+        {name:'Les Tremblays', ineo:'550', lat:49.013018527881904, lng:2.0280219625328617, intervalAfter:1},
+        {name:'Le Noyer', ineo:'440', lat:49.01046973698373, lng:2.031724432880384, intervalAfter:1},
+        {name:'Les Forboeufs', ineo:'503', lat:49.00864577443022, lng:2.0354891064274483, intervalAfter:2},
+        {name:'Théâtre de Jouy-le-Moutier', ineo:'814', lat:49.01044962592771, lng:2.040597128574162, intervalAfter:1},
+        {name:'Les Jouannes', ineo:'516', lat:49.010730169039526, lng:2.0469749246477, intervalAfter:1},
+        {name:'Vignes Blanches', ineo:'832', lat:49.01115881995115, lng:2.0508554180926217, intervalAfter:1},
+        {name:'Croix Saint-Jacques', ineo:'158', lat:49.011786571288, lng:2.0531523918747197, intervalAfter:1},
+        {name:'Le Pont', ineo:'443', lat:49.0141828644281, lng:2.059606794680075, intervalAfter:2},
+        {name:'Mairie (Neuville-sur-Oise)', ineo:'605', lat:49.01338396949181, lng:2.0627258040433003, intervalAfter:1},
+        {name:'Les Trembles', ineo:'552', lat:49.01498588525701, lng:2.0704764970152145, intervalAfter:1},
+        {name:'Gay Lussac', ineo:'290', lat:49.015916204236966, lng:2.076753847996359, intervalAfter:1},
+        {name:'Gare de Neuville Université', ineo:'267', lat:49.015078980862135, lng:2.080372240593402, intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Gare de Neuville Université → Cergy Le Haut',
+      stops: [
+        {name:'Gare de Neuville Université', ineo:'269', lat:49.01468890120624, lng:2.0794547178318763, intervalAfter:1},
+        {name:'Gay Lussac', ineo:'289', lat:49.01579511562308, lng:2.075245504081226, intervalAfter:1},
+        {name:'Les Trembles', ineo:'553', lat:49.01494910718193, lng:2.069990505496814, intervalAfter:1},
+        {name:'Mairie (Neuville-sur-Oise)', ineo:'604', lat:49.013461350777575, lng:2.062526941327508, intervalAfter:2},
+        {name:'Le Pont', ineo:'444', lat:49.014432532897686, lng:2.059308224871223, intervalAfter:1},
+        {name:'Croix Saint-Jacques', ineo:'157', lat:49.01191532226916, lng:2.052720990939381, intervalAfter:1},
+        {name:'Vignes Blanches', ineo:'833', lat:49.01116438485396, lng:2.049543353750073, intervalAfter:1},
+        {name:'Les Jouannes', ineo:'515', lat:49.01088546235379, lng:2.0458376680535695, intervalAfter:1},
+        {name:'Théâtre de Jouy-le-Moutier', ineo:'813', lat:49.01029387611998, lng:2.038901427141223, intervalAfter:2},
+        {name:'Les Forboeufs', ineo:'501', lat:49.0088513255149, lng:2.034310161315258, intervalAfter:1},
+        {name:'Le Noyer', ineo:'439', lat:49.01125439702241, lng:2.030473631773174, intervalAfter:1},
+        {name:'Les Tremblays', ineo:'551', lat:49.01386576667431, lng:2.0271931887729666, intervalAfter:2},
+        {name:'Les Valanchards', ineo:'555', lat:49.021484543587604, lng:2.022122988344093, intervalAfter:1},
+        {name:'La Marnière', ineo:'395', lat:49.02451824511589, lng:2.022356638142646, intervalAfter:1},
+        {name:'La Croix Lieu', ineo:'382', lat:49.03098033209827, lng:2.021735129729969, intervalAfter:1},
+        {name:'La Bussie', ineo:'365', lat:49.03328429670755, lng:2.0204220179165664, intervalAfter:1},
+        {name:'Boris Vian', ineo:'69', lat:49.03634791413323, lng:2.0170387690509917, intervalAfter:2},
+        {name:'Rond-Point du Golf', ineo:'774', lat:49.040817393523746, lng:2.0149779778539614, intervalAfter:2},
+        {name:"L'Orangerie", ineo:'565', lat:49.04445027275907, lng:2.0102862901273104, intervalAfter:2},
+        {name:'Gare de Cergy Le Haut RER', ineo:'230', lat:49.04735653544453, lng:2.010822202347681, intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'aller', label: '☀️ DIMANCHE — Cergy Le Haut → Neuville (25 arrêts)',
+      stops: [
+        {name:'Gare de Cergy Le Haut RER', ineo:'228', lat:49.047418909012784, lng:2.0104809167771553, intervalAfter:2},
+        {name:"L'Orangerie", ineo:'564', lat:49.044925491911364, lng:2.010646896624763, intervalAfter:2},
+        {name:'Rond-Point du Golf', ineo:'773', lat:49.039550188679364, lng:2.015855373111285, intervalAfter:2},
+        {name:'Boris Vian', ineo:'68', lat:49.03542508329222, lng:2.0177855341007063, intervalAfter:2},
+        {name:'La Bussie', ineo:'366', lat:49.03283553667758, lng:2.020209018277186, intervalAfter:1},
+        {name:'La Croix Lieu', ineo:'380', lat:49.03052303120944, lng:2.0218477196082714, intervalAfter:1},
+        {name:'Colucci Gandhi', intervalAfter:1},
+        {name:'Le Boulingrin', intervalAfter:1},
+        {name:'Simone Signoret', intervalAfter:1},
+        {name:'La Marnière', ineo:'393', lat:49.02344578095198, lng:2.0221759002562005, intervalAfter:1},
+        {name:'Mendès France', intervalAfter:1},
+        {name:'Georges Brassens', intervalAfter:1},
+        {name:'Les Valanchards', ineo:'556', lat:49.02051021058112, lng:2.021598629297742, intervalAfter:2},
+        {name:'Les Tremblays', ineo:'550', lat:49.013018527881904, lng:2.0280219625328617, intervalAfter:1},
+        {name:'Le Noyer', ineo:'440', lat:49.01046973698373, lng:2.031724432880384, intervalAfter:1},
+        {name:'Les Forboeufs', ineo:'503', lat:49.00864577443022, lng:2.0354891064274483, intervalAfter:2},
+        {name:'Théâtre de Jouy-le-Moutier', ineo:'814', lat:49.01044962592771, lng:2.040597128574162, intervalAfter:1},
+        {name:'Les Jouannes', ineo:'516', lat:49.010730169039526, lng:2.0469749246477, intervalAfter:1},
+        {name:'Vignes Blanches', ineo:'832', lat:49.01115881995115, lng:2.0508554180926217, intervalAfter:1},
+        {name:'Croix Saint-Jacques', ineo:'158', lat:49.011786571288, lng:2.0531523918747197, intervalAfter:1},
+        {name:'Le Pont', ineo:'443', lat:49.0141828644281, lng:2.059606794680075, intervalAfter:2},
+        {name:'Mairie (Neuville-sur-Oise)', ineo:'605', lat:49.01338396949181, lng:2.0627258040433003, intervalAfter:1},
+        {name:'Les Trembles', ineo:'552', lat:49.01498588525701, lng:2.0704764970152145, intervalAfter:1},
+        {name:'Gay Lussac', ineo:'290', lat:49.015916204236966, lng:2.076753847996359, intervalAfter:1},
+        {name:'Gare de Neuville Université', ineo:'267', lat:49.015078980862135, lng:2.080372240593402, intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: '☀️ DIMANCHE — Neuville → Cergy Le Haut (25 arrêts)',
+      stops: [
+        {name:'Gare de Neuville Université', ineo:'269', lat:49.01468890120624, lng:2.0794547178318763, intervalAfter:1},
+        {name:'Gay Lussac', ineo:'289', lat:49.01579511562308, lng:2.075245504081226, intervalAfter:1},
+        {name:'Les Trembles', ineo:'553', lat:49.01494910718193, lng:2.069990505496814, intervalAfter:1},
+        {name:'Mairie (Neuville-sur-Oise)', ineo:'604', lat:49.013461350777575, lng:2.062526941327508, intervalAfter:2},
+        {name:'Le Pont', ineo:'444', lat:49.014432532897686, lng:2.059308224871223, intervalAfter:1},
+        {name:'Croix Saint-Jacques', ineo:'157', lat:49.01191532226916, lng:2.052720990939381, intervalAfter:1},
+        {name:'Vignes Blanches', ineo:'833', lat:49.01116438485396, lng:2.049543353750073, intervalAfter:1},
+        {name:'Les Jouannes', ineo:'515', lat:49.01088546235379, lng:2.0458376680535695, intervalAfter:1},
+        {name:'Théâtre de Jouy-le-Moutier', ineo:'813', lat:49.01029387611998, lng:2.038901427141223, intervalAfter:2},
+        {name:'Les Forboeufs', ineo:'501', lat:49.0088513255149, lng:2.034310161315258, intervalAfter:1},
+        {name:'Le Noyer', ineo:'439', lat:49.01125439702241, lng:2.030473631773174, intervalAfter:1},
+        {name:'Les Tremblays', ineo:'551', lat:49.01386576667431, lng:2.0271931887729666, intervalAfter:2},
+        {name:'Les Valanchards', ineo:'555', lat:49.021484543587604, lng:2.022122988344093, intervalAfter:1},
+        {name:'Georges Brassens', intervalAfter:1},
+        {name:'Mendès France', intervalAfter:1},
+        {name:'La Marnière', ineo:'395', lat:49.02451824511589, lng:2.022356638142646, intervalAfter:1},
+        {name:'Simone Signoret', intervalAfter:1},
+        {name:'Le Boulingrin', intervalAfter:1},
+        {name:'Colucci Gandhi', intervalAfter:1},
+        {name:'La Croix Lieu', ineo:'382', lat:49.03098033209827, lng:2.021735129729969, intervalAfter:1},
+        {name:'La Bussie', ineo:'365', lat:49.03328429670755, lng:2.0204220179165664, intervalAfter:1},
+        {name:'Boris Vian', ineo:'69', lat:49.03634791413323, lng:2.0170387690509917, intervalAfter:2},
+        {name:'Rond-Point du Golf', ineo:'774', lat:49.040817393523746, lng:2.0149779778539614, intervalAfter:2},
+        {name:"L'Orangerie", ineo:'565', lat:49.04445027275907, lng:2.0102862901273104, intervalAfter:2},
+        {name:'Gare de Cergy Le Haut RER', ineo:'230', lat:49.04735653544453, lng:2.010822202347681, intervalAfter:0},
+      ]
+    },
+  ],
+  '1206': [
+    {
+      direction: 'aller', label: 'Cergy Le Haut → Stade Christian Léon',
+      stops: [
+        {name:'Gare de Cergy Le Haut RER', ineo:'230', lat:49.04736, lng:2.01082, intervalAfter:2},
+        {name:'Hérons', ineo:'322', lat:49.04976, lng:2.01765, intervalAfter:1},
+        {name:'La Belle Heaumière', ineo:'359', lat:49.04953, lng:2.02393, intervalAfter:1},
+        {name:'Musaraigne', ineo:'654', lat:49.04914, lng:2.02989, intervalAfter:2},
+        {name:'Saint-Christophe RER', ineo:'252', intervalAfter:2},
+        {name:'Centaure Martelet', ineo:'83', lat:49.05073, lng:2.04108, intervalAfter:1},
+        {name:'Cergy - Le Verger', ineo:'456', lat:49.05048, lng:2.04367, intervalAfter:1},
+        {name:'Plaine Des Sports', ineo:'727', lat:49.05436, lng:2.04656, intervalAfter:1},
+        {name:'La Bruyère', ineo:'363', lat:49.05904, lng:2.04875, intervalAfter:1},
+        {name:'Le Vauvarois', ineo:'453', lat:49.0621, lng:2.05057, intervalAfter:2},
+        {name:'Osny Gare Sncf', ineo:'673', lat:49.06387, lng:2.05645, intervalAfter:2},
+        {name:'Square Des Artistes', ineo:'807', lat:49.06137, lng:2.0654, intervalAfter:1},
+        {name:'Château de Grouchy', ineo:'105', lat:49.06386, lng:2.06478, intervalAfter:1},
+        {name:'Montgeroult', ineo:'647', lat:49.06556, lng:2.06642, intervalAfter:1},
+        {name:'Voltigeurs', ineo:'834', lat:49.06856, lng:2.06811, intervalAfter:1},
+        {name:'Réservoir', ineo:'758', lat:49.07157, lng:2.06964, intervalAfter:2},
+        {name:'Lycée - Clinique Sainte Marie', ineo:'574', lat:49.07443, lng:2.07198, intervalAfter:2},
+        {name:'Oseraie', ineo:'671', lat:49.07715, lng:2.07577, intervalAfter:1},
+        {name:'Demi Lieue', ineo:'165', lat:49.07143, lng:2.08181, intervalAfter:1},
+        {name:'Fleurance Muguet', ineo:'201', intervalAfter:1},
+        {name:'Jean Jaurès', ineo:'338', intervalAfter:1},
+        {name:'Stade Christian Léon', ineo:'812', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Stade Christian Léon → Cergy Le Haut',
+      stops: [
+        {name:'Stade Christian Léon', intervalAfter:1},
+        {name:'Jean Jaurès', intervalAfter:1},
+        {name:'Fleurance Muguet', intervalAfter:1},
+        {name:'Demi Lieue', ineo:'166', lat:49.07143, lng:2.08181, intervalAfter:1},
+        {name:'Oseraie', ineo:'671', lat:49.07715, lng:2.07577, intervalAfter:2},
+        {name:'Lycée - Clinique Sainte Marie', ineo:'575', lat:49.07443, lng:2.07198, intervalAfter:2},
+        {name:'Réservoir', ineo:'757', lat:49.07157, lng:2.06964, intervalAfter:1},
+        {name:'Voltigeurs', ineo:'835', lat:49.06856, lng:2.06811, intervalAfter:1},
+        {name:'Montgeroult', ineo:'646', lat:49.06556, lng:2.06642, intervalAfter:1},
+        {name:'Château de Grouchy', ineo:'104', lat:49.06386, lng:2.06478, intervalAfter:2},
+        {name:'Square Des Artistes', ineo:'808', lat:49.06137, lng:2.0654, intervalAfter:2},
+        {name:'Osny Gare Sncf', ineo:'674', lat:49.06387, lng:2.05645, intervalAfter:2},
+        {name:'Le Vauvarois', ineo:'454', lat:49.0621, lng:2.05057, intervalAfter:1},
+        {name:'La Bruyère', ineo:'364', lat:49.05904, lng:2.04875, intervalAfter:1},
+        {name:'Plaine Des Sports', ineo:'726', lat:49.05436, lng:2.04656, intervalAfter:1},
+        {name:'Cergy - Le Verger', ineo:'455', lat:49.05048, lng:2.04367, intervalAfter:1},
+        {name:'Centaure Martelet', ineo:'84', lat:49.05073, lng:2.04108, intervalAfter:3},
+        {name:'Saint-Christophe RER', ineo:'252', intervalAfter:2},
+        {name:'Musaraigne', ineo:'655', lat:49.04914, lng:2.02989, intervalAfter:2},
+        {name:'La Belle Heaumière', ineo:'360', lat:49.04953, lng:2.02393, intervalAfter:1},
+        {name:'Hérons', ineo:'323', lat:49.04976, lng:2.01765, intervalAfter:3},
+        {name:'Gare de Cergy Le Haut RER', ineo:'227', lat:49.04736, lng:2.01082, intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'aller', label: 'Gare de Pontoise → Maison D\'Arrêt → Gare de Cergy Le Haut', keywords:['maison arret','maison d arret','cergy le haut','osny','musaraigne','herons','voltigeurs','montgeroult'],
+      stops: [
+        {name:'Gare de Pontoise', ineo:'277', intervalAfter:2},
+        {name:'Hôtel Dieu', ineo:'327', intervalAfter:2},
+        {name:'Quai du Pothuis', ineo:'744', intervalAfter:2},
+        {name:'Cité Judiciaire', ineo:'123', intervalAfter:2},
+        {name:'Citadelle', ineo:'120', intervalAfter:1},
+        {name:'Cimetière de Pontoise', ineo:'118', intervalAfter:1},
+        {name:'Lycée Pissarro', ineo:'589', intervalAfter:2},
+        {name:'Normandie', ineo:'660', intervalAfter:1},
+        {name:'Alsace Bretagne', ineo:'9', intervalAfter:2},
+        {name:'Hôpital René Dubos', ineo:'326', intervalAfter:1},
+        {name:'Hôpital Administration', ineo:'324', intervalAfter:1},
+        {name:'Charles Bouticourt', ineo:'101', intervalAfter:1},
+        {name:'Place de la Paix', ineo:'713', intervalAfter:1},
+        {name:'Nobel', ineo:'658', intervalAfter:1},
+        {name:'Louvrais', ineo:'572', intervalAfter:1},
+        {name:'Boblingen', ineo:'58', intervalAfter:1},
+        {name:'Croix Saint Siméon', ineo:'155', intervalAfter:5},
+        {name:'Maison D\'Arrêt', ineo:'607', intervalAfter:6},
+        {name:'Demi Lieue', ineo:'165', lat:49.07143, lng:2.08181, intervalAfter:0},
+        {name:'Oseraie', ineo:'671', lat:49.07715, lng:2.07577, intervalAfter:1},
+        {name:'Lycée - Clinique Sainte Marie', ineo:'574', lat:49.07443, lng:2.07198, intervalAfter:1},
+        {name:'Réservoir', ineo:'758', intervalAfter:1},
+        {name:'Voltigeurs', ineo:'834', intervalAfter:1},
+        {name:'Montgeroult', ineo:'647', intervalAfter:1},
+        {name:'Château de Grouchy', ineo:'105', intervalAfter:2},
+        {name:'Square des Artistes', ineo:'807', intervalAfter:2},
+        {name:'Gare d\'Osny', ineo:'673', intervalAfter:2},
+        {name:'Le Vauvarois', ineo:'453', intervalAfter:1},
+        {name:'La Bruyère', ineo:'363', intervalAfter:1},
+        {name:'Plaine des Sports', ineo:'727', intervalAfter:3},
+        {name:'Le Verger', ineo:'456', intervalAfter:0},
+        {name:'Centaure Martelet', ineo:'83', intervalAfter:3},
+        {name:'Gare de Cergy Saint-Christophe RER', ineo:'253', intervalAfter:1},
+        {name:'Musaraigne', ineo:'654', intervalAfter:2},
+        {name:'La Belle Heaumière', ineo:'359', intervalAfter:1},
+        {name:'Hérons', ineo:'322', intervalAfter:3},
+        {name:'Gare de Cergy Le Haut RER', ineo:'230', lat:49.04736, lng:2.01082, intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Gare de Cergy-le-Haut → Gare de Pontoise', keywords:['maison','arret','maison d arret','judiciaire'],
+      stops: [
+        {name:'Cergy Le Haut RER', ineo:'227', intervalAfter:2},
+        {name:'Hérons', ineo:'323', lat:49.04976, lng:2.01765, intervalAfter:1},
+        {name:'La Belle Heaumière', ineo:'360', lat:49.04953, lng:2.02393, intervalAfter:1},
+        {name:'Musaraigne', ineo:'655', lat:49.04914, lng:2.02989, intervalAfter:2},
+        {name:'Saint-Christophe RER', ineo:'252', intervalAfter:2},
+        {name:'Centaure Martelet', ineo:'84', lat:49.05073, lng:2.04108, intervalAfter:1},
+        {name:'Cergy - Le Verger', ineo:'455', lat:49.05048, lng:2.04367, intervalAfter:1},
+        {name:'Plaine Des Sports', ineo:'726', lat:49.05436, lng:2.04656, intervalAfter:1},
+        {name:'La Bruyère', ineo:'364', lat:49.05904, lng:2.04875, intervalAfter:1},
+        {name:'Le Vauvarois', ineo:'454', lat:49.0621, lng:2.05057, intervalAfter:2},
+        {name:'Osny Gare Sncf', ineo:'674', lat:49.06387, lng:2.05645, intervalAfter:2},
+        {name:'Square Des Artistes', ineo:'808', lat:49.06137, lng:2.0654, intervalAfter:1},
+        {name:'Château de Grouchy', ineo:'104', lat:49.06386, lng:2.06478, intervalAfter:1},
+        {name:'Montgeroult', ineo:'646', lat:49.06556, lng:2.06642, intervalAfter:1},
+        {name:'Voltigeurs', ineo:'835', lat:49.06856, lng:2.06811, intervalAfter:1},
+        {name:'Réservoir', ineo:'757', lat:49.07157, lng:2.06964, intervalAfter:2},
+        {name:'Lycée - Clinique Sainte Marie', ineo:'575', lat:49.07443, lng:2.07198, intervalAfter:2},
+        {name:'Oseraie', ineo:'671', lat:49.07715, lng:2.07577, intervalAfter:2},
+        {name:'Demi Lieue', ineo:'166', lat:49.07143, lng:2.08181, intervalAfter:2},
+        {name:'Maison D\'Arrêt', ineo:'607', intervalAfter:2},
+        {name:'Croix Saint Siméon', ineo:'156', intervalAfter:1},
+        {name:'Boblingen', ineo:'59', intervalAfter:1},
+        {name:'Louvrais', ineo:'571', intervalAfter:1},
+        {name:'Nobel', ineo:'659', intervalAfter:1},
+        {name:'Place de la Paix', ineo:'715', intervalAfter:1},
+        {name:'Charles Bouticourt', ineo:'102', intervalAfter:1},
+        {name:'Hôpital Administration', ineo:'325', intervalAfter:1},
+        {name:'Hôpital René Dubos', ineo:'326', intervalAfter:2},
+        {name:'Alsace Bretagne', ineo:'8', intervalAfter:1},
+        {name:'Normandie', ineo:'661', intervalAfter:2},
+        {name:'Lycée Pissarro', ineo:'590', intervalAfter:1},
+        {name:'Cimetière de Pontoise', ineo:'117', intervalAfter:2},
+        {name:'Citadelle', ineo:'119', intervalAfter:1},
+        {name:'Cité Judiciaire', ineo:'124', intervalAfter:1},
+        {name:'Quai du Pothuis', ineo:'743', intervalAfter:1},
+        {name:'Hôtel Dieu', ineo:'328', intervalAfter:1},
+        {name:'Gare de Pontoise', ineo:'277', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'aller', label: 'Gare de Pontoise → Demi Lieue (22 arrêts)', keywords:['demi lieue','demi-lieue','stade christian'],
+      isDefault: true,
+      stops: [
+        {name:'Gare de Pontoise', ineo:'277', intervalAfter:3},
+        {name:'Hôtel Dieu', ineo:'327', intervalAfter:2},
+        {name:'Quai du Pothuis', ineo:'744', intervalAfter:3},
+        {name:'Cité Judiciaire', ineo:'123', intervalAfter:2},
+        {name:'Citadelle', ineo:'120', intervalAfter:2},
+        {name:'Cimetière de Pontoise', ineo:'118', intervalAfter:1},
+        {name:'Lycée Pissarro', ineo:'589', intervalAfter:2},
+        {name:'Normandie', ineo:'660', intervalAfter:1},
+        {name:'Alsace Bretagne', ineo:'9', intervalAfter:2},
+        {name:'Hôpital René Dubos', ineo:'326', intervalAfter:1},
+        {name:'Hôpital Administration', ineo:'324', intervalAfter:1},
+        {name:'Charles Bouticourt', ineo:'101', intervalAfter:1},
+        {name:'Place de la Paix', ineo:'713', intervalAfter:1},
+        {name:'Nobel', ineo:'658', intervalAfter:1},
+        {name:'Louvrais', ineo:'572', intervalAfter:1},
+        {name:'Boblingen', ineo:'58', intervalAfter:1},
+        {name:'Croix Saint Siméon', ineo:'155', intervalAfter:5},
+        {name:'Stade Christian Léon', ineo:'812', intervalAfter:2},
+        {name:'Oseraie', ineo:'671', lat:49.07715, lng:2.07577, intervalAfter:1},
+        {name:'Demi Lieue', ineo:'165', lat:49.07143, lng:2.08181, intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Demi Lieue → Gare de Pontoise (22 arrêts)',
+      stops: [
+        {name:'Demi Lieue', ineo:'166', lat:49.07143, lng:2.08181, intervalAfter:1},
+        {name:'Oseraie', ineo:'671', lat:49.07715, lng:2.07577, intervalAfter:1},
+        {name:'Lycée - Clinique Sainte Marie', ineo:'575', lat:49.07443, lng:2.07198, intervalAfter:1},
+        {name:'Stade Christian Léon', ineo:'812', intervalAfter:1},
+        {name:'Jean Jaurès', ineo:'338', intervalAfter:1},
+        {name:'Fleurance Muguet', ineo:'201', intervalAfter:1},
+        {name:'Maison D\'Arrêt', ineo:'607', intervalAfter:1},
+        {name:'Croix Saint Siméon', ineo:'156', intervalAfter:1},
+        {name:'Boblingen', ineo:'59', intervalAfter:1},
+        {name:'Louvrais', ineo:'571', intervalAfter:1},
+        {name:'Nobel', ineo:'659', intervalAfter:1},
+        {name:'Place de la Paix', ineo:'715', intervalAfter:1},
+        {name:'Charles Bouticourt', ineo:'102', intervalAfter:1},
+        {name:'Hôpital Administration', ineo:'325', intervalAfter:1},
+        {name:'Hôpital René Dubos', ineo:'326', intervalAfter:2},
+        {name:'Alsace Bretagne', ineo:'8', intervalAfter:1},
+        {name:'Normandie', ineo:'661', intervalAfter:2},
+        {name:'Lycée Pissarro', ineo:'590', intervalAfter:1},
+        {name:'Cimetière de Pontoise', ineo:'117', intervalAfter:2},
+        {name:'Citadelle', ineo:'119', intervalAfter:1},
+        {name:'Cité Judiciaire', ineo:'124', intervalAfter:1},
+        {name:'Quai du Pothuis', ineo:'743', intervalAfter:1},
+        {name:'Hôtel Dieu', ineo:'328', intervalAfter:1},
+        {name:'Gare de Pontoise', ineo:'277', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'aller', label: 'Gare de Pontoise → Gare de Cergy Le Haut RER',
+      stops: [
+        {name:'Gare de Pontoise', ineo:'271', intervalAfter:1},
+        {name:'Hôtel Dieu', ineo:'327', intervalAfter:1},
+        {name:'Quai du Pothuis', ineo:'744', intervalAfter:1},
+        {name:'Cité Judiciaire', ineo:'123', intervalAfter:1},
+        {name:'Citadelle', ineo:'120', intervalAfter:1},
+        {name:'Cimetière de Pontoise', ineo:'118', intervalAfter:1},
+        {name:'Lycée Pissarro', ineo:'589', intervalAfter:1},
+        {name:'Normandie', ineo:'660', intervalAfter:1},
+        {name:'Alsace Bretagne', ineo:'9', intervalAfter:1},
+        {name:'Hôpital René Dubos', ineo:'326', intervalAfter:1},
+        {name:'Hôpital Administration', ineo:'324', intervalAfter:1},
+        {name:'Charles Bouticourt', ineo:'101', intervalAfter:1},
+        {name:'Place de la Paix', ineo:'713', intervalAfter:1},
+        {name:'Nobel', ineo:'658', intervalAfter:1},
+        {name:'Louvrais', ineo:'572', intervalAfter:1},
+        {name:'Boblingen', ineo:'58', intervalAfter:1},
+        {name:'Croix Saint Siméon', ineo:'155', intervalAfter:1},
+        {name:'Demi Lieue', ineo:'165', lat:49.07143, lng:2.08181, intervalAfter:1},
+        {name:'Oseraie', ineo:'671', lat:49.07715, lng:2.07577, intervalAfter:1},
+        {name:'Lycée - Clinique Sainte Marie', ineo:'574', lat:49.07443, lng:2.07198, intervalAfter:1},
+        {name:'Réservoir', ineo:'758', lat:49.07157, lng:2.06964, intervalAfter:1},
+        {name:'Voltigeurs', ineo:'834', lat:49.06856, lng:2.06811, intervalAfter:1},
+        {name:'Montgeroult', ineo:'647', lat:49.06556, lng:2.06642, intervalAfter:1},
+        {name:'Château de Grouchy', ineo:'105', lat:49.06386, lng:2.06478, intervalAfter:1},
+        {name:'Square des Artistes', ineo:'807', intervalAfter:1},
+        {name:'Gare d\'Osny', ineo:'673', intervalAfter:1},
+        {name:'Le Vauvarois', ineo:'453', lat:49.0621, lng:2.05057, intervalAfter:1},
+        {name:'La Bruyère', ineo:'363', lat:49.05904, lng:2.04875, intervalAfter:1},
+        {name:'Plaine des Sports', ineo:'727', intervalAfter:1},
+        {name:'Le Verger', ineo:'456', intervalAfter:1},
+        {name:'Centaure Martelet', ineo:'83', lat:49.05073, lng:2.04108, intervalAfter:1},
+        {name:'Gare de Cergy Saint-Christophe RER', ineo:'253', intervalAfter:1},
+        {name:'Musaraigne', ineo:'654', lat:49.04914, lng:2.02989, intervalAfter:1},
+        {name:'La Belle Heaumière', ineo:'359', lat:49.04953, lng:2.02393, intervalAfter:1},
+        {name:'Hérons', ineo:'322', lat:49.04976, lng:2.01765, intervalAfter:1},
+        {name:'Gare de Cergy Le Haut RER', ineo:'230', lat:49.04736, lng:2.01082, intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Gare de Cergy Le Haut RER → Gare de Pontoise',
+      stops: [
+        {name:'Gare de Cergy Le Haut RER', ineo:'227', lat:49.04736, lng:2.01082, intervalAfter:1},
+        {name:'Hérons', ineo:'323', lat:49.04976, lng:2.01765, intervalAfter:1},
+        {name:'La Belle Heaumière', ineo:'360', lat:49.04953, lng:2.02393, intervalAfter:1},
+        {name:'Musaraigne', ineo:'655', lat:49.04914, lng:2.02989, intervalAfter:1},
+        {name:'Gare de Cergy Saint-Christophe RER', ineo:'250', intervalAfter:1},
+        {name:'Centaure Martelet', ineo:'84', lat:49.05073, lng:2.04108, intervalAfter:1},
+        {name:'Le Verger', ineo:'455', intervalAfter:1},
+        {name:'Plaine des Sports', ineo:'726', intervalAfter:1},
+        {name:'La Bruyère', ineo:'364', lat:49.05904, lng:2.04875, intervalAfter:1},
+        {name:'Le Vauvarois', ineo:'454', lat:49.0621, lng:2.05057, intervalAfter:1},
+        {name:'Gare d\'Osny', ineo:'674', intervalAfter:1},
+        {name:'Square des Artistes', ineo:'808', intervalAfter:1},
+        {name:'Château de Grouchy', ineo:'104', lat:49.06386, lng:2.06478, intervalAfter:1},
+        {name:'Montgeroult', ineo:'646', lat:49.06556, lng:2.06642, intervalAfter:1},
+        {name:'Voltigeurs', ineo:'835', lat:49.06856, lng:2.06811, intervalAfter:1},
+        {name:'Réservoir', ineo:'757', lat:49.07157, lng:2.06964, intervalAfter:1},
+        {name:'Lycée - Clinique Sainte Marie', ineo:'575', lat:49.07443, lng:2.07198, intervalAfter:1},
+        {name:'Oseraie', ineo:'671', lat:49.07715, lng:2.07577, intervalAfter:1},
+        {name:'Demi Lieue', ineo:'166', lat:49.07143, lng:2.08181, intervalAfter:1},
+        {name:'Croix Saint Siméon', ineo:'156', intervalAfter:1},
+        {name:'Boblingen', ineo:'59', intervalAfter:1},
+        {name:'Louvrais', ineo:'571', intervalAfter:1},
+        {name:'Nobel', ineo:'659', intervalAfter:1},
+        {name:'Place de la Paix', ineo:'715', intervalAfter:1},
+        {name:'Charles Bouticourt', ineo:'102', intervalAfter:1},
+        {name:'Hôpital Administration', ineo:'325', intervalAfter:1},
+        {name:'Hôpital René Dubos', ineo:'326', intervalAfter:1},
+        {name:'Alsace Bretagne', ineo:'8', intervalAfter:1},
+        {name:'Normandie', ineo:'661', intervalAfter:1},
+        {name:'Lycée Pissarro', ineo:'590', intervalAfter:1},
+        {name:'Cimetière de Pontoise', ineo:'117', intervalAfter:1},
+        {name:'Citadelle', ineo:'119', intervalAfter:1},
+        {name:'Cité Judiciaire', ineo:'124', intervalAfter:1},
+        {name:'Quai du Pothuis', ineo:'743', intervalAfter:1},
+        {name:'Hôtel Dieu', ineo:'328', intervalAfter:1},
+        {name:'Gare de Pontoise', ineo:'274', intervalAfter:0},
+      ]
+    },
+  ],
+  '1207': [
+    {
+      direction: 'aller', label: 'Les Toupets → Gare Cergy-Préfecture Quai L', keywords:['hayette','la hayette','henri guillaumet','bruzacques'],
+      stops: [
+        {name:'Les Toupets', ineo:'549', intervalAfter:1},
+        {name:'Mendès France', ineo:'634', intervalAfter:1},
+        {name:'Georges Brassens', ineo:'298', intervalAfter:1},
+        {name:'Les Valanchards', ineo:'557', intervalAfter:1},
+        {name:'Les Tremblays', ineo:'550', intervalAfter:1},
+        {name:'Le Noyer', ineo:'437', intervalAfter:1},
+        {name:'Le Temps Perdu', ineo:'451', intervalAfter:1},
+        {name:'Cornouillers', ineo:'144', intervalAfter:1},
+        {name:'Les Eguerets', ineo:'495', intervalAfter:1},
+        {name:'Théâtre de Jouy-Le-Moutier', intervalAfter:1},
+        {name:'Les Forboeufs', intervalAfter:1},
+        {name:'La Hayette', intervalAfter:1},
+        {name:'Souhaits', intervalAfter:1},
+        {name:'Les Bruzacques', intervalAfter:1},
+        {name:'Henri Guillaumet', intervalAfter:1},
+        {name:'Les Jouannes', ineo:'516', intervalAfter:1},
+        {name:'Vignes Blanches', ineo:'832', intervalAfter:1},
+        {name:'Croix Saint-Jacques', ineo:'158', intervalAfter:1},
+        {name:'Le Pont', ineo:'445', intervalAfter:1},
+        {name:'Le Stade', ineo:'450', intervalAfter:1},
+        {name:'Île-De-Loisirs', ineo:'330', intervalAfter:1},
+        {name:'Brûloir-Hautil', ineo:'80', intervalAfter:1},
+        {name:'Conseil Départemental / Conseil Général', ineo:'142', intervalAfter:1},
+        {name:'Les Plants', ineo:'533', intervalAfter:1},
+        {name:'Gare de Cergy Préfecture - Quai L', ineo:'247', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Gare Cergy-Préfecture → Les Toupets', keywords:['hayette','la hayette','henri guillaumet','bruzacques'],
+      stops: [
+        {name:'Gare de Cergy Préfecture - Quai K', ineo:'246', intervalAfter:1},
+        {name:'Les Plants', ineo:'532', intervalAfter:1},
+        {name:'Conseil Départemental / Conseil Général', ineo:'141', intervalAfter:1},
+        {name:'Brûloir-Hautil', ineo:'79', intervalAfter:1},
+        {name:'Île-De-Loisirs', ineo:'329', intervalAfter:1},
+        {name:'Le Stade', ineo:'449', intervalAfter:1},
+        {name:'Le Pont', ineo:'446', intervalAfter:1},
+        {name:'Croix Saint-Jacques', ineo:'157', intervalAfter:1},
+        {name:'Vignes Blanches', ineo:'833', intervalAfter:1},
+        {name:'Les Jouannes', ineo:'515', intervalAfter:1},
+        {name:'Henri Guillaumet', intervalAfter:1},
+        {name:'Les Bruzacques', intervalAfter:1},
+        {name:'Souhaits', intervalAfter:1},
+        {name:'La Hayette', intervalAfter:1},
+        {name:'Les Forboeufs', intervalAfter:1},
+        {name:'Théâtre de Jouy-Le-Moutier', intervalAfter:1},
+        {name:'Les Éguerets', ineo:'496', intervalAfter:1},
+        {name:'Cornouillers', ineo:'145', intervalAfter:1},
+        {name:'Le Temps Perdu', ineo:'452', intervalAfter:1},
+        {name:'Le Noyer', ineo:'438', intervalAfter:1},
+        {name:'Les Tremblays', ineo:'551', intervalAfter:1},
+        {name:'Les Valanchards', ineo:'554', intervalAfter:1},
+        {name:'Georges Brassens', ineo:'297', intervalAfter:1},
+        {name:'Mendès France', ineo:'632', intervalAfter:1},
+        {name:'Les Toupets', ineo:'549', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'aller', label: 'Gare Cergy-Préfecture → Les Toupets', isDefault:true,
+      stops: [
+        {name:'Gare de Cergy Préfecture - Quai K', ineo:'246', intervalAfter:1},
+        {name:'Les Plants', ineo:'532', intervalAfter:1},
+        {name:'Conseil Départemental / Conseil Général', ineo:'141', intervalAfter:1},
+        {name:'Brûloir-Hautil', ineo:'79', intervalAfter:3},
+        {name:'Île-De-Loisirs', ineo:'329', intervalAfter:2},
+        {name:'Le Stade', ineo:'449', intervalAfter:1},
+        {name:'Le Pont', ineo:'446', intervalAfter:3},
+        {name:'Croix Saint-Jacques', ineo:'157', intervalAfter:1},
+        {name:'Vignes Blanches', ineo:'833', intervalAfter:1},
+        {name:'Les Jouannes', ineo:'515', intervalAfter:1},
+        {name:'Les Éguerets', ineo:'496', intervalAfter:1},
+        {name:'Cornouillers', ineo:'145', intervalAfter:2},
+        {name:'Le Temps Perdu', ineo:'452', intervalAfter:1},
+        {name:'Le Noyer', ineo:'438', intervalAfter:1},
+        {name:'Les Tremblays', ineo:'551', intervalAfter:2},
+        {name:'Les Valanchards', ineo:'554', intervalAfter:2},
+        {name:'Georges Brassens', ineo:'297', intervalAfter:1},
+        {name:'Mendès France', ineo:'632', intervalAfter:1},
+        {name:'Les Toupets', ineo:'549', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Les Toupets → Gare Cergy-Préfecture', isDefault:true,
+      stops: [
+        {name:'Les Toupets', ineo:'549', intervalAfter:1},
+        {name:'Mendès France', ineo:'634', intervalAfter:1},
+        {name:'Georges Brassens', ineo:'298', intervalAfter:1},
+        {name:'Les Valanchards', ineo:'557', intervalAfter:4},
+        {name:'Les Tremblays', ineo:'550', intervalAfter:1},
+        {name:'Le Noyer', ineo:'437', intervalAfter:1},
+        {name:'Le Temps Perdu', ineo:'451', intervalAfter:2},
+        {name:'Cornouillers', ineo:'144', intervalAfter:1},
+        {name:'Les Éguerets', ineo:'495', intervalAfter:2},
+        {name:'Les Jouannes', ineo:'516', intervalAfter:1},
+        {name:'Vignes Blanches', ineo:'832', intervalAfter:0},
+        {name:'Croix Saint-Jacques', ineo:'158', intervalAfter:2},
+        {name:'Le Pont', ineo:'445', intervalAfter:1},
+        {name:'Le Stade', ineo:'450', intervalAfter:2},
+        {name:'Île-De-Loisirs', ineo:'330', intervalAfter:3},
+        {name:'Brûloir-Hautil', ineo:'80', intervalAfter:1},
+        {name:'Conseil Départemental / Conseil Général', ineo:'142', intervalAfter:1},
+        {name:'Les Plants - Préfecture RER', ineo:'533', intervalAfter:2},
+        {name:'Gare de Cergy Préfecture - Quai L', ineo:'247', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'aller', label: 'Gare Cergy-Préfecture → Ecancourt (14 arrêts)',
+      stops: [
+        {name:'Gare de Cergy Préfecture - Quai K', ineo:'246', intervalAfter:1},
+        {name:'Les Plants', ineo:'532', intervalAfter:1},
+        {name:'Conseil Départemental / Conseil Général', ineo:'141', intervalAfter:1},
+        {name:'Brûloir-Hautil', ineo:'79', intervalAfter:1},
+        {name:'Île-De-Loisirs', ineo:'329', intervalAfter:1},
+        {name:'Le Stade', ineo:'449', intervalAfter:1},
+        {name:'Le Pont', ineo:'446', intervalAfter:1},
+        {name:'Croix Saint-Jacques', ineo:'157', intervalAfter:1},
+        {name:'Vignes Blanches', ineo:'833', intervalAfter:1},
+        {name:'Les Jouannes', ineo:'515', intervalAfter:1},
+        {name:'Henri Guillaumet', intervalAfter:1},
+        {name:'Les Bruzacques', intervalAfter:1},
+        {name:'Souhaits', intervalAfter:1},
+        {name:'La Hayette', intervalAfter:1},
+        {name:'Denis Papin', intervalAfter:1},
+        {name:'Les Merisiers', intervalAfter:1},
+        {name:'Gabriel Faure', intervalAfter:1},
+        {name:'Ecancourt', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Ecancourt → Gare Cergy-Préfecture (18 arrêts)',
+      stops: [
+        {name:'Ecancourt', intervalAfter:1},
+        {name:'Gabriel Faure', intervalAfter:1},
+        {name:'Les Merisiers', intervalAfter:1},
+        {name:'Denis Papin', intervalAfter:1},
+        {name:'La Hayette', intervalAfter:1},
+        {name:'Souhaits', intervalAfter:1},
+        {name:'Les Bruzacques', intervalAfter:1},
+        {name:'Henri Guillaumet', intervalAfter:1},
+        {name:'Les Jouannes', ineo:'516', intervalAfter:1},
+        {name:'Vignes Blanches', ineo:'832', intervalAfter:1},
+        {name:'Croix Saint-Jacques', ineo:'158', intervalAfter:1},
+        {name:'Le Pont', ineo:'445', intervalAfter:1},
+        {name:'Le Stade', ineo:'450', intervalAfter:1},
+        {name:'Île-De-Loisirs', ineo:'330', intervalAfter:1},
+        {name:'Brûloir-Hautil', ineo:'80', intervalAfter:1},
+        {name:'Conseil Départemental / Conseil Général', ineo:'142', intervalAfter:1},
+        {name:'Les Plants', ineo:'533', intervalAfter:1},
+        {name:'Gare de Cergy Préfecture - Quai L', ineo:'247', intervalAfter:0},
+      ]
+    },
+  ],
+  '1208': [
+    {
+      direction: 'aller', label: 'Gare Neuville Université → Gare Cergy-Préfecture',
+      stops: [
+        {name:'Gare de Neuville Université', ineo:'266', intervalAfter:6},
+        {name:'Éragny - Neuville Gare', ineo:'186', intervalAfter:3},
+        {name:'Pincevents', ineo:'699', intervalAfter:1},
+        {name:'La Challe', ineo:'369', intervalAfter:1},
+        {name:'Les Rayes', ineo:'535', intervalAfter:1},
+        {name:'Parc Urbain', ineo:'684', intervalAfter:1},
+        {name:'Roger Salengro', ineo:'764', intervalAfter:1},
+        {name:'Le Grillon', ineo:'429', intervalAfter:1},
+        {name:'Les Dix Arpents', ineo:'492', intervalAfter:1},
+        {name:'Route Pierrelaye', ineo:'780', intervalAfter:1},
+        {name:'Fernand Châtelain', ineo:'196', intervalAfter:1},
+        {name:'Le Gros Chêne', ineo:'432', intervalAfter:1},
+        {name:'Allée du Sous-Bois', ineo:'4', intervalAfter:2},
+        {name:'Art-de-Vivre', ineo:'21', intervalAfter:2},
+        {name:'Miramene', ineo:'640', intervalAfter:2},
+        {name:'Ecluse', ineo:'174', intervalAfter:2},
+        {name:'Avenue de L\'Est', ineo:'34', intervalAfter:2},
+        {name:'Oise Hautil', ineo:'665', intervalAfter:2},
+        {name:'Gare de Cergy Préfecture - Quai L', ineo:'247', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Gare Cergy-Préfecture → Gare Neuville Université',
+      stops: [
+        {name:'Gare de Cergy Préfecture - Quai E', ineo:'241', intervalAfter:1},
+        {name:'Oise Hautil', ineo:'666', intervalAfter:1},
+        {name:'Avenue de L\'Est', ineo:'35', intervalAfter:3},
+        {name:'Ecluse', ineo:'176', intervalAfter:1},
+        {name:'Miramene', ineo:'641', intervalAfter:2},
+        {name:'Art-de-Vivre', ineo:'20', intervalAfter:2},
+        {name:'Allée du Sous-Bois', ineo:'5', intervalAfter:1},
+        {name:'Le Gros Chêne', ineo:'431', intervalAfter:1},
+        {name:'Fernand Châtelain', ineo:'197', intervalAfter:1},
+        {name:'Route Pierrelaye', ineo:'781', intervalAfter:1},
+        {name:'Les Dix Arpents', ineo:'491', intervalAfter:1},
+        {name:'Le Grillon', ineo:'430', intervalAfter:2},
+        {name:'Roger Salengro', ineo:'763', intervalAfter:1},
+        {name:'Parc Urbain', ineo:'685', intervalAfter:1},
+        {name:'Les Rayes', ineo:'534', intervalAfter:1},
+        {name:'La Challe', ineo:'368', intervalAfter:2},
+        {name:'Pincevents', ineo:'698', intervalAfter:4},
+        {name:'Gare d\'Eragny', ineo:'281', intervalAfter:7},
+        {name:'Gare de Neuville Université', ineo:'267', intervalAfter:0},
+      ]
+    },
+  ],
+  '1223': [
+    {
+      direction: 'aller', label: 'Gare de Pontoise → Les Pâtis',
+      stops: [
+        {name:'Gare de Pontoise', ineo:'272', intervalAfter:1},
+        {name:'Place Notre Dame', ineo:'721', intervalAfter:1},
+        {name:'Les Lavandières', ineo:'519', intervalAfter:1},
+        {name:'Eric de Martimprey', ineo:'187', intervalAfter:2},
+        {name:'Maréchal de Lattre de Tassigny', ineo:'623', intervalAfter:1},
+        {name:'Ampère', ineo:'10', intervalAfter:1},
+        {name:'Marcouville', ineo:'621', intervalAfter:1},
+        {name:'Falaise', ineo:'192', intervalAfter:1},
+        {name:'Beaux Soleils', ineo:'52', intervalAfter:1},
+        {name:'Avenue Des Arpents', ineo:'39', intervalAfter:1},
+        {name:'Jules César', ineo:'344', intervalAfter:1},
+        {name:'Jules César - Général de Gaulle', ineo:'350', intervalAfter:1},
+        {name:'Rue de Gency', ineo:'782', intervalAfter:1},
+        {name:'La Ravinière', ineo:'404', intervalAfter:1},
+        {name:'Les Pâtis', ineo:'530', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Les Pâtis → Gare de Pontoise',
+      stops: [
+        {name:'Les Pâtis', ineo:'531', intervalAfter:1},
+        {name:'La Ravinière', ineo:'406', intervalAfter:1},
+        {name:'Rue de Gency', ineo:'783', intervalAfter:1},
+        {name:'Jules César', ineo:'347', intervalAfter:1},
+        {name:'Avenue Des Arpents', ineo:'38', intervalAfter:1},
+        {name:'Beaux Soleils', ineo:'51', intervalAfter:1},
+        {name:'Falaise', ineo:'193', intervalAfter:1},
+        {name:'Marcouville', ineo:'621', intervalAfter:1},
+        {name:'Ampère', ineo:'11', intervalAfter:1},
+        {name:'Maréchal de Lattre de Tassigny', ineo:'622', intervalAfter:1},
+        {name:'Eric de Martimprey', ineo:'188', intervalAfter:1},
+        {name:'Les Lavandières', ineo:'518', intervalAfter:1},
+        {name:'Place Notre Dame', ineo:'720', intervalAfter:1},
+        {name:'Gare de Pontoise', ineo:'274', intervalAfter:0},
+      ]
+    },
+  ],
+  '1224': [
+    {
+      direction: 'aller', label: 'Gare Cergy Saint-Christophe → Gare Cergy-Préfecture',
+      stops: [
+        {name:'Gare de Cergy Saint-Christophe RER', ineo:'251', intervalAfter:1},
+        {name:'La Constellation', ineo:'378', intervalAfter:1},
+        {name:'Parc de L\'Horloge', ineo:'680', intervalAfter:1},
+        {name:'Les Cascades', ineo:'479', intervalAfter:1},
+        {name:'Les Genottes', ineo:'505', intervalAfter:1},
+        {name:'Petit Albi', ineo:'692', intervalAfter:1},
+        {name:'Plaine Des Sports', ineo:'726', intervalAfter:1},
+        {name:'La Bruyère', ineo:'364', intervalAfter:1},
+        {name:'Le Vauvarois', ineo:'454', intervalAfter:2},
+        {name:'Osny Gare Sncf', ineo:'674', intervalAfter:1},
+        {name:'Square Des Artistes', ineo:'808', intervalAfter:1},
+        {name:'Les Pâtis', ineo:'531', intervalAfter:1},
+        {name:'La Ravinière', ineo:'405', intervalAfter:1},
+        {name:'Jules César - Général de Gaulle', ineo:'349', intervalAfter:1},
+        {name:'Jules César', ineo:'347', intervalAfter:1},
+        {name:'Avenue Des Arpents', ineo:'38', intervalAfter:1},
+        {name:'Beaux Soleils', ineo:'51', intervalAfter:1},
+        {name:'Falaise', ineo:'193', intervalAfter:1},
+        {name:'Cité Artisanale', ineo:'121', intervalAfter:1},
+        {name:'Cergy - Marjobert', ineo:'526', intervalAfter:2},
+        {name:'Université Des Chênes', ineo:'821', intervalAfter:1},
+        {name:'Gare de Cergy Préfecture - Quai B', ineo:'238', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Gare Cergy-Préfecture → Gare Cergy Saint-Christophe',
+      stops: [
+        {name:'Gare de Cergy Préfecture - Quai H', ineo:'244', intervalAfter:1},
+        {name:'Les Marjoberts', ineo:'527', intervalAfter:1},
+        {name:'Cité Artisanale', ineo:'122', intervalAfter:1},
+        {name:'Falaise', ineo:'192', intervalAfter:1},
+        {name:'Beaux Soleils', ineo:'52', intervalAfter:1},
+        {name:'Avenue Des Arpents', ineo:'39', intervalAfter:1},
+        {name:'Jules César', ineo:'344', intervalAfter:1},
+        {name:'Jules César - Général de Gaulle', ineo:'348', intervalAfter:1},
+        {name:'La Ravinière', ineo:'404', intervalAfter:1},
+        {name:'Les Pâtis', ineo:'530', intervalAfter:1},
+        {name:'Square Des Artistes', ineo:'807', intervalAfter:1},
+        {name:'Osny Gare Sncf', ineo:'673', intervalAfter:2},
+        {name:'Le Vauvarois', ineo:'453', intervalAfter:1},
+        {name:'La Bruyère', ineo:'363', intervalAfter:1},
+        {name:'Plaine Des Sports', ineo:'727', intervalAfter:1},
+        {name:'Petit Albi', ineo:'691', intervalAfter:1},
+        {name:'Les Genottes', ineo:'504', intervalAfter:1},
+        {name:'Les Cascades', ineo:'478', intervalAfter:1},
+        {name:'Parc de L\'Horloge', ineo:'681', intervalAfter:1},
+        {name:'La Constellation', ineo:'376', intervalAfter:1},
+        {name:'Parc de L\'Horloge', ineo:'681', intervalAfter:1},
+        {name:'Gare de Cergy Saint-Christophe RER', ineo:'256', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Gare Cergy-Préfecture Quai A → Gare Cergy Saint-Christophe',
+      stops: [
+        {name:'Gare de Cergy Préfecture - Quai A', ineo:'237', intervalAfter:4},
+        {name:'Cité Artisanale', ineo:'122', intervalAfter:2},
+        {name:'Falaise', ineo:'192', intervalAfter:1},
+        {name:'Beaux Soleils', ineo:'52', intervalAfter:1},
+        {name:'Avenue Des Arpents', ineo:'39', intervalAfter:1},
+        {name:'Jules César', ineo:'344', intervalAfter:1},
+        {name:'Jules César - Général de Gaulle', ineo:'348', intervalAfter:1},
+        {name:'La Ravinière', ineo:'404', intervalAfter:1},
+        {name:'Les Pâtis', ineo:'530', intervalAfter:1},
+        {name:'Square Des Artistes', ineo:'807', intervalAfter:1},
+        {name:'Osny Gare Sncf', ineo:'673', intervalAfter:2},
+        {name:'Le Vauvarois', ineo:'453', intervalAfter:1},
+        {name:'La Bruyère', ineo:'363', intervalAfter:2},
+        {name:'Plaine Des Sports', ineo:'727', intervalAfter:1},
+        {name:'Petit Albi', ineo:'691', intervalAfter:1},
+        {name:'Les Genottes', ineo:'504', intervalAfter:1},
+        {name:'Les Cascades', ineo:'478', intervalAfter:1},
+        {name:'Parc de L\'Horloge', ineo:'681', intervalAfter:1},
+        {name:'La Constellation', ineo:'376', intervalAfter:2},
+        {name:'Gare de Cergy Saint-Christophe RER', ineo:'256', intervalAfter:0},
+      ]
+    },
+  ],
+  '1226': [
+    {
+      direction: 'aller', label: 'Gare Cergy-Préfecture → Gare de Méry-Sur-Oise',
+      stops: [
+        {name:'Gare de Cergy Préfecture - Quai K', ineo:'246', intervalAfter:2},
+        {name:'Oise Hautil', ineo:'666', intervalAfter:1},
+        {name:'Avenue de L\'Est', ineo:'35', intervalAfter:3},
+        {name:'Ecluse', ineo:'175', intervalAfter:1},
+        {name:'La Danne', ineo:'386', intervalAfter:6},
+        {name:'Jules César', ineo:'345', intervalAfter:1},
+        {name:'Dauphiné', ineo:'164', intervalAfter:1},
+        {name:'Aquitaine', ineo:'14', intervalAfter:2},
+        {name:'Rue du Parc', ineo:'786', intervalAfter:1},
+        {name:'Verdun', ineo:'827', intervalAfter:2},
+        {name:'Mairie / Saint-Ouen-L\'Aumône', ineo:'596', intervalAfter:1},
+        {name:'La Poste', ineo:'402', intervalAfter:1},
+        {name:'Pradine', ineo:'740', intervalAfter:3},
+        {name:'Epluches', ineo:'183', intervalAfter:1},
+        {name:'Henri Becquerel / Épluches', ineo:'318', intervalAfter:1},
+        {name:'La Chapelle / Pont Petit', ineo:'370', intervalAfter:1},
+        {name:'Le Clos Borgne', ineo:'424', intervalAfter:1},
+        {name:'La Tréate', ineo:'413', intervalAfter:1},
+        {name:'Fond de Vaux', ineo:'207', intervalAfter:2},
+        {name:'Résidence de Vaux', ineo:'759', intervalAfter:1},
+        {name:'La Bonneville', ineo:'362', intervalAfter:1},
+        {name:'Les Roches', ineo:'537', intervalAfter:1},
+        {name:'Molière', ineo:'643', intervalAfter:2},
+        {name:'Thérèse Léthias', ineo:'816', intervalAfter:1},
+        {name:'Mairie', ineo:'602', intervalAfter:2},
+        {name:'Méry-Sur-Oise / Camille Plaquet', ineo:'639', intervalAfter:1},
+        {name:'Gare de Méry-Sur-Oise / Méry Gare Sncf', ineo:'637', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Gare de Méry-Sur-Oise → Gare Cergy-Préfecture',
+      stops: [
+        {name:'Gare de Méry-Sur-Oise / Méry Gare Sncf', ineo:'637', intervalAfter:1},
+        {name:'Méry-Sur-Oise / Camille Plaquet', ineo:'638', intervalAfter:1},
+        {name:'Mairie', ineo:'603', intervalAfter:1},
+        {name:'Thérèse Léthias', ineo:'815', intervalAfter:2},
+        {name:'Molière', ineo:'642', intervalAfter:1},
+        {name:'Les Roches', ineo:'536', intervalAfter:1},
+        {name:'La Bonneville', ineo:'361', intervalAfter:1},
+        {name:'Résidence de Vaux', ineo:'760', intervalAfter:2},
+        {name:'Fond de Vaux', ineo:'206', intervalAfter:1},
+        {name:'La Tréate', ineo:'414', intervalAfter:1},
+        {name:'Le Clos Borgne', ineo:'425', intervalAfter:2},
+        {name:'La Chapelle / Pont Petit', ineo:'371', intervalAfter:1},
+        {name:'Henri Becquerel / Épluches', ineo:'319', intervalAfter:1},
+        {name:'Epluches', ineo:'182', intervalAfter:3},
+        {name:'Pradine', ineo:'739', intervalAfter:2},
+        {name:'La Poste', ineo:'403', intervalAfter:1},
+        {name:'Mairie / Saint-Ouen-L\'Aumône', ineo:'595', intervalAfter:2},
+        {name:'Verdun', ineo:'826', intervalAfter:1},
+        {name:'Rue du Parc', ineo:'787', intervalAfter:1},
+        {name:'Aquitaine', ineo:'15', intervalAfter:1},
+        {name:'Dauphiné', ineo:'163', intervalAfter:1},
+        {name:'Jules César', ineo:'346', intervalAfter:3},
+        {name:'La Danne', ineo:'385', intervalAfter:1},
+        {name:'Ecluse', ineo:'174', intervalAfter:2},
+        {name:'Avenue de L\'Est', ineo:'34', intervalAfter:1},
+        {name:'Oise Hautil', ineo:'665', intervalAfter:2},
+        {name:'Gare de Cergy Préfecture - Quai L', ineo:'247', intervalAfter:0},
+      ]
+    },
+  ],
+  '1228': [
+    {
+      direction: 'aller', label: 'Gare Cergy-Préfecture → Équerre',
+      stops: [
+        {name:'Gare de Cergy Préfecture - Quai K', intervalAfter:2},
+        {name:'Oise Hautil', intervalAfter:1},
+        {name:'Avenue de L\'Est', intervalAfter:1},
+        {name:'Ecluse', intervalAfter:2},
+        {name:'La Danne', intervalAfter:2},
+        {name:'Louis Delage', intervalAfter:2},
+        {name:'Gare de Liesse - Quai E', intervalAfter:2},
+        {name:'Marcel Dassault', intervalAfter:2},
+        {name:'Avenue de la Mare', intervalAfter:2},
+        {name:'Compas', intervalAfter:2},
+        {name:'Palmer', intervalAfter:2},
+        {name:'Béthunes Sud', intervalAfter:2},
+        {name:'Aurore', intervalAfter:2},
+        {name:'Hautes Bornes', intervalAfter:2},
+        {name:'Bois du Fief', intervalAfter:2},
+        {name:'Artois', intervalAfter:1},
+        {name:'Bretagne', intervalAfter:1},
+        {name:'Bourgogne', intervalAfter:1},
+        {name:'Languedoc', intervalAfter:1},
+        {name:'Les Béthunes', intervalAfter:2},
+        {name:'Équerre', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Équerre → Gare Cergy-Préfecture',
+      stops: [
+        {name:'Équerre', intervalAfter:2},
+        {name:'Les Béthunes', intervalAfter:1},
+        {name:'Languedoc', intervalAfter:1},
+        {name:'Bourgogne', intervalAfter:1},
+        {name:'Bretagne', intervalAfter:1},
+        {name:'Artois', intervalAfter:2},
+        {name:'Bois du Fief', intervalAfter:2},
+        {name:'Hautes Bornes', intervalAfter:2},
+        {name:'Aurore', intervalAfter:2},
+        {name:'Béthunes Sud', intervalAfter:2},
+        {name:'Palmer', intervalAfter:2},
+        {name:'Compas', intervalAfter:2},
+        {name:'Avenue de la Mare', intervalAfter:2},
+        {name:'Marcel Dassault', intervalAfter:2},
+        {name:'Gare de Liesse - Quai B', intervalAfter:2},
+        {name:'Louis Delage', intervalAfter:2},
+        {name:'La Danne', intervalAfter:2},
+        {name:'Ecluse', intervalAfter:1},
+        {name:'Avenue de L\'Est', intervalAfter:1},
+        {name:'Oise Hautil', intervalAfter:2},
+        {name:'Gare de Cergy Préfecture - Quai L', intervalAfter:0},
+      ]
+    },
+  ],
+  '1229': [
+    {
+      direction: 'aller', label: 'Pontoise Gare → Gare Neuville Université — Sam/Dim',
+      stops: [
+        {name:'Pontoise Gare', intervalAfter:2},
+        {name:'Plateau Saint-Martin', intervalAfter:3},
+        {name:'Préfecture RER', intervalAfter:2},
+        {name:'Les Plants - Préfecture RER', intervalAfter:3},
+        {name:'Conseil Départemental / Conseil Général', intervalAfter:3},
+        {name:'Brûloir-Hautil', intervalAfter:3},
+        {name:'Île-De-Loisirs', intervalAfter:2},
+        {name:'Le Stade', intervalAfter:2},
+        {name:'Le Pont', intervalAfter:2},
+        {name:'Gare de Neuville Université', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Gare Neuville Université → Pontoise Gare — Sam/Dim',
+      stops: [
+        {name:'Gare de Neuville Université', intervalAfter:2},
+        {name:'Le Pont', intervalAfter:2},
+        {name:'Le Stade', intervalAfter:2},
+        {name:'Île-De-Loisirs', intervalAfter:3},
+        {name:'Brûloir-Hautil', intervalAfter:3},
+        {name:'Conseil Départemental / Conseil Général', intervalAfter:3},
+        {name:'Les Plants - Préfecture RER', intervalAfter:2},
+        {name:'Gare de Cergy Prefecture', intervalAfter:2},
+        {name:'Plateau Saint-Martin', intervalAfter:2},
+        {name:'Pontoise Gare', intervalAfter:0},
+      ]
+    },
+  ],
+  '1230': [
+    {
+      direction: 'aller', label: '📅 Circuit 34 min — Pontoise → Pontoise (semaine)',
+      stops: [
+        {name:'Gare de Pontoise Canrobert', ineo:'277', intervalAfter:2},
+        {name:'Avenue du Premier Dragon', intervalAfter:1},
+        {name:'Escadrons', intervalAfter:1},
+        {name:'Plateau Saint-Martin', intervalAfter:3},
+        {name:'Gare de Cergy Préfecture - Quai D', intervalAfter:2},
+        {name:'Oise Hautil - Préfecture RER', intervalAfter:1},
+        {name:'Palette', intervalAfter:1},
+        {name:'Les Larris', intervalAfter:2},
+        {name:'Les Bocages', intervalAfter:1},
+        {name:'Ecole des Maradas', intervalAfter:0},
+        {name:'Marché des Touleuses', intervalAfter:1},
+        {name:'Les Touleuses', intervalAfter:1},
+        {name:'Château Saint-Sylvère', intervalAfter:1},
+        {name:'Conseil Départemental', intervalAfter:1},
+        {name:'Les Plants - Préfecture RER', intervalAfter:2},
+        {name:'Gare de Cergy Préfecture - Quai G', intervalAfter:4},
+        {name:'Plateau Saint-Martin', intervalAfter:1},
+        {name:'Escadrons', intervalAfter:1},
+        {name:'Avenue du Premier Dragon', intervalAfter:2},
+        {name:'Gare de Pontoise Canrobert', ineo:'277', intervalAfter:0},
+      ]
+    },
+  ],
+  '1232': [
+    {
+      direction: 'aller', label: 'Gare Cergy-Préfecture → Lycée Jean Perrin',
+      stops: [
+        {name:'Gare de Cergy Préfecture - Quai K', ineo:'246', intervalAfter:2},
+        {name:'Oise Hautil', ineo:'666', intervalAfter:1},
+        {name:'Avenue de L\'Est', ineo:'35', intervalAfter:1},
+        {name:'Ecluse', ineo:'175', intervalAfter:2},
+        {name:'La Danne', ineo:'386', intervalAfter:2},
+        {name:'Jules César', ineo:'345', intervalAfter:1},
+        {name:'Dauphiné', ineo:'164', intervalAfter:1},
+        {name:'Aquitaine', ineo:'14', intervalAfter:1},
+        {name:'Rue du Parc', ineo:'786', intervalAfter:2},
+        {name:'Verdun', ineo:'827', intervalAfter:2},
+        {name:'Mairie', ineo:'606', intervalAfter:2},
+        {name:'Clos du Roi', ineo:'134', intervalAfter:2},
+        {name:'M. de L\'Hospital', ineo:'593', intervalAfter:2},
+        {name:'Lycée Edmond Rostand', ineo:'577', intervalAfter:2},
+        {name:'Louis Delage', ineo:'568', intervalAfter:2},
+        {name:'Gare de Liesse - Quai D', ineo:'264', intervalAfter:2},
+        {name:'Marcel Dassault', ineo:'612', intervalAfter:2},
+        {name:'Les Bourseaux', ineo:'474', intervalAfter:2},
+        {name:'Rue Saint Hilaire', ineo:'788', intervalAfter:2},
+        {name:'Guivernone', ineo:'307', intervalAfter:2},
+        {name:'Avenue du Château', ineo:'41', intervalAfter:1},
+        {name:'Vert Galant', ineo:'828', intervalAfter:2},
+        {name:'Antoine Balard', ineo:'12', intervalAfter:2},
+        {name:'Gros Chevaux', ineo:'306', intervalAfter:2},
+        {name:'Les Sablons', ineo:'540', intervalAfter:2},
+        {name:'Lycée Jean Perrin', ineo:'580', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Lycée Jean Perrin → Gare Cergy-Préfecture',
+      stops: [
+        {name:'Lycée Jean Perrin', ineo:'580', intervalAfter:2},
+        {name:'Les Sablons', ineo:'106', intervalAfter:2},
+        {name:'Gros Chevaux', ineo:'305', intervalAfter:2},
+        {name:'Antoine Balard', ineo:'13', intervalAfter:2},
+        {name:'Vert Galant', ineo:'831', intervalAfter:1},
+        {name:'Avenue du Château', ineo:'42', intervalAfter:2},
+        {name:'Guivernone', ineo:'308', intervalAfter:2},
+        {name:'Rue Saint Hilaire', ineo:'789', intervalAfter:2},
+        {name:'Les Bourseaux', ineo:'475', intervalAfter:2},
+        {name:'Marcel Dassault', ineo:'613', intervalAfter:2},
+        {name:'Gare de Liesse - Quai C', ineo:'263', intervalAfter:2},
+        {name:'Louis Delage', ineo:'567', intervalAfter:2},
+        {name:'Lycée Edmond Rostand', ineo:'578', intervalAfter:2},
+        {name:'M. de L\'Hospital', ineo:'594', intervalAfter:2},
+        {name:'Clos du Roi', ineo:'135', intervalAfter:2},
+        {name:'Mairie / Saint-Ouen-L\'Aumône', ineo:'595', intervalAfter:2},
+        {name:'Verdun', ineo:'826', intervalAfter:1},
+        {name:'Rue du Parc', ineo:'787', intervalAfter:1},
+        {name:'Aquitaine', ineo:'15', intervalAfter:1},
+        {name:'Dauphiné', ineo:'163', intervalAfter:1},
+        {name:'Jules César', ineo:'346', intervalAfter:2},
+        {name:'La Danne', ineo:'385', intervalAfter:2},
+        {name:'Ecluse', ineo:'174', intervalAfter:1},
+        {name:'Avenue de L\'Est', ineo:'34', intervalAfter:1},
+        {name:'Oise Hautil', ineo:'665', intervalAfter:2},
+        {name:'Gare de Cergy Préfecture - Quai L', ineo:'247', intervalAfter:0},
+      ]
+    },
+  ],
+  '1233': [
+    {
+      direction: 'aller', label: 'Gare de Pontoise → Gare Neuville Université',
+      stops: [
+        {name:'Gare de Pontoise', ineo:'275', intervalAfter:2},
+        {name:'Hôtel Dieu', ineo:'327', intervalAfter:2},
+        {name:'La Poste', ineo:'403', intervalAfter:2},
+        {name:'Mairie / Saint-Ouen-L\'Aumône', ineo:'595', intervalAfter:2},
+        {name:'Clos du Roi', ineo:'134', intervalAfter:2},
+        {name:'M. de L\'Hospital', ineo:'593', intervalAfter:2},
+        {name:'Lycée Edmond Rostand', ineo:'577', intervalAfter:2},
+        {name:'Louis Delage', ineo:'568', intervalAfter:2},
+        {name:'Gare de Liesse - Quai D', ineo:'264', intervalAfter:2},
+        {name:'La Chaufferie', ineo:'373', intervalAfter:2},
+        {name:'Les Bellevues', ineo:'466', intervalAfter:2},
+        {name:'Fernand Châtelain', ineo:'197', intervalAfter:2},
+        {name:'Route Pierrrelaye', ineo:'781', intervalAfter:2},
+        {name:'Les Beaux Vents', ineo:'465', intervalAfter:2},
+        {name:'L\'Ourcq-La Marne', ineo:'569', intervalAfter:2},
+        {name:'La Challe', ineo:'368', intervalAfter:2},
+        {name:'Pincevents', ineo:'698', intervalAfter:1},
+        {name:'Gare de Neuville Université', ineo:'267', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Gare Neuville Université → Gare de Pontoise',
+      stops: [
+        {name:'Gare de Neuville Université', ineo:'270', intervalAfter:2},
+        {name:'Pincevents', ineo:'699', intervalAfter:2},
+        {name:'La Challe', ineo:'369', intervalAfter:2},
+        {name:'L\'Ourcq-La Marne', ineo:'570', intervalAfter:2},
+        {name:'Les Beaux Vents', ineo:'464', intervalAfter:2},
+        {name:'Route Pierrelaye', ineo:'780', intervalAfter:2},
+        {name:'Fernand Châtelain', ineo:'195', intervalAfter:2},
+        {name:'Les Bellevues', ineo:'467', intervalAfter:2},
+        {name:'La Chaufferie', ineo:'372', intervalAfter:2},
+        {name:'Gare de Liesse - Quai C', ineo:'263', intervalAfter:2},
+        {name:'Louis Delage', ineo:'567', intervalAfter:2},
+        {name:'Lycée Edmond Rostand', ineo:'578', intervalAfter:2},
+        {name:'M. de L\'Hospital', ineo:'594', intervalAfter:2},
+        {name:'Clos du Roi', ineo:'135', intervalAfter:2},
+        {name:'Mairie / Saint-Ouen-L\'Aumône', ineo:'596', intervalAfter:2},
+        {name:'La Poste', ineo:'402', intervalAfter:2},
+        {name:'Hôtel Dieu', ineo:'328', intervalAfter:1},
+        {name:'Gare de Pontoise', ineo:'274', intervalAfter:0},
+      ]
+    },
+  ],
+  '1235': [
+    {
+      direction: 'aller', label: 'Cergy Saint-Christophe → Pontoise (9 arrêts)',
+      stops: [
+        {name:'Gare de Cergy Saint-Christophe RER', ineo:'250', intervalAfter:2},
+        {name:'Place Olympe de Gouges', ineo:'723', intervalAfter:2},
+        {name:'Place Gisèle Halimi', ineo:'718', intervalAfter:1},
+        {name:'Aren\'Ice', ineo:'16', intervalAfter:2},
+        {name:'Boulevard de la Paix', ineo:'70', intervalAfter:1},
+        {name:'Mérites', ineo:'635', intervalAfter:2},
+        {name:'Ampère', ineo:'11', intervalAfter:2},
+        {name:'Coubertin', ineo:'148', intervalAfter:4},
+        {name:'Gare de Pontoise Canrobert', ineo:'276', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Pontoise → Cergy Saint-Christophe (9 arrêts)',
+      stops: [
+        {name:'Gare de Pontoise Canrobert', ineo:'277', intervalAfter:2},
+        {name:'Coubertin', ineo:'149', intervalAfter:2},
+        {name:'Ampère', ineo:'10', intervalAfter:2},
+        {name:'Mérites', ineo:'636', intervalAfter:1},
+        {name:'Boulevard de la Paix', ineo:'71', intervalAfter:1},
+        {name:'Aren\'Ice', ineo:'17', intervalAfter:1},
+        {name:'Place Gisèle Halimi', ineo:'719', intervalAfter:2},
+        {name:'Place Olympe de Gouges', ineo:'722', intervalAfter:4},
+        {name:'Gare de Cergy Saint-Christophe RER', ineo:'252', intervalAfter:0},
+      ]
+    },
+  ],
+  '1236': [
+    {
+      direction: 'aller', label: 'Les Croizettes → Gare de Pontoise (21 arrêts)',
+      stops: [
+        {name:'Les Croizettes', intervalAfter:1},
+        {name:'Rond Point du Miroir', intervalAfter:1},
+        {name:'Fief À Cavan', intervalAfter:1},
+        {name:'Gare de Cergy Le Haut RER', intervalAfter:1},
+        {name:'L\'Orangerie', intervalAfter:1},
+        {name:'Les Essarts', intervalAfter:1},
+        {name:'Rond-Point du Chêne', intervalAfter:1},
+        {name:'Avenue de L\'Embellie', intervalAfter:1},
+        {name:'Rond-Point du Cèdre', intervalAfter:1},
+        {name:'Rond-Point du Tilleul', intervalAfter:1},
+        {name:'Martelet', intervalAfter:1},
+        {name:'Rond-Point Haut Gency', intervalAfter:1},
+        {name:'La Sébille', intervalAfter:1},
+        {name:'Les Heuruelles', intervalAfter:1},
+        {name:'Les Linandes', intervalAfter:1},
+        {name:'Orange', intervalAfter:1},
+        {name:'Cité Artisanale', intervalAfter:1},
+        {name:'Cergy - Marjobert', intervalAfter:1},
+        {name:'Université Des Chênes', intervalAfter:1},
+        {name:'Plateau Saint-Martin', intervalAfter:1},
+        {name:'Gare de Pontoise Canrobert', ineo:'277', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Gare de Pontoise → Les Croizettes (21 arrêts)',
+      stops: [
+        {name:'Gare de Pontoise Canrobert', ineo:'277', intervalAfter:1},
+        {name:'Plateau Saint-Martin', intervalAfter:1},
+        {name:'Université Des Chênes', intervalAfter:1},
+        {name:'Cergy - Marjobert', intervalAfter:1},
+        {name:'Cité Artisanale', intervalAfter:1},
+        {name:'Orange', intervalAfter:1},
+        {name:'Les Linandes', intervalAfter:1},
+        {name:'Les Heuruelles', intervalAfter:1},
+        {name:'La Sébille', intervalAfter:1},
+        {name:'Rond-Point Haut Gency', intervalAfter:1},
+        {name:'Martelet', intervalAfter:1},
+        {name:'Rond-Point du Tilleul', intervalAfter:1},
+        {name:'Rond-Point du Cèdre', intervalAfter:1},
+        {name:'Avenue de L\'Embellie', intervalAfter:1},
+        {name:'Rond-Point du Chêne', intervalAfter:1},
+        {name:'Les Essarts', intervalAfter:1},
+        {name:'L\'Orangerie', intervalAfter:1},
+        {name:'Gare de Cergy Le Haut RER', intervalAfter:1},
+        {name:'Fief À Cavan', intervalAfter:1},
+        {name:'Rond Point du Miroir', intervalAfter:1},
+        {name:'Les Croizettes', intervalAfter:0},
+      ]
+    },
+  ],
+  '1237': [
+    {
+      direction: 'aller', label: 'Gare de Conflans → Georges Brassens',
+      stops: [
+        {name:'Gare de Conflans Fin d\'Oise', intervalAfter:1},
+        {name:'Passerelle', intervalAfter:1},
+        {name:'Ecole de la Batellerie', intervalAfter:1},
+        {name:'Place Fouillère', intervalAfter:2},
+        {name:'Mairie / Conflans', intervalAfter:1},
+        {name:'Verdun', intervalAfter:1},
+        {name:'Gendarmerie', intervalAfter:2},
+        {name:'Les Anglais', intervalAfter:1},
+        {name:'Croix Blanche', intervalAfter:1},
+        {name:'Bois Meresse', intervalAfter:1},
+        {name:'Les Ambassadeurs', intervalAfter:1},
+        {name:'Norton', intervalAfter:2},
+        {name:'Gare de Neuville Université', intervalAfter:6},
+        {name:'Croix Saint-Jacques', intervalAfter:2},
+        {name:'Eglise / Jouy-le-Moutier', intervalAfter:1},
+        {name:'La Vallée', intervalAfter:1},
+        {name:'Le Lavoir', intervalAfter:2},
+        {name:'Les Doucerons', intervalAfter:1},
+        {name:'Les Dames Gilles', intervalAfter:2},
+        {name:'Maison Vallerand', intervalAfter:3},
+        {name:'La Croix Lieu', intervalAfter:2},
+        {name:'La Marnière', intervalAfter:1},
+        {name:'Mendès France', intervalAfter:1},
+        {name:'Georges Brassens', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Georges Brassens → Gare de Conflans',
+      stops: [
+        {name:'Georges Brassens', intervalAfter:1},
+        {name:'Mendès France', intervalAfter:1},
+        {name:'La Marnière', intervalAfter:2},
+        {name:'La Croix Lieu', intervalAfter:3},
+        {name:'Maison Vallerand', intervalAfter:2},
+        {name:'Les Dames Gilles', intervalAfter:1},
+        {name:'Les Doucerons', intervalAfter:2},
+        {name:'Le Lavoir', intervalAfter:1},
+        {name:'La Vallée', intervalAfter:1},
+        {name:'Eglise / Jouy-le-Moutier', intervalAfter:2},
+        {name:'Croix Saint-Jacques', intervalAfter:6},
+        {name:'Gare de Neuville Université', intervalAfter:2},
+        {name:'Norton', intervalAfter:1},
+        {name:'Les Ambassadeurs', intervalAfter:1},
+        {name:'Bois Meresse', intervalAfter:1},
+        {name:'Croix Blanche', intervalAfter:1},
+        {name:'Les Anglais', intervalAfter:2},
+        {name:'Gendarmerie', intervalAfter:1},
+        {name:'Verdun', intervalAfter:1},
+        {name:'Mairie / Conflans', intervalAfter:2},
+        {name:'Place Fouillère', intervalAfter:1},
+        {name:'Ecole de la Batellerie', intervalAfter:1},
+        {name:'Passerelle', intervalAfter:1},
+        {name:'Gare de Conflans Fin d\'Oise', intervalAfter:0},
+      ]
+    },
+  ],
+  '1238': [
+    {
+      direction: 'aller', label: 'La Taillette → Gare Cergy-Préfecture',
+      stops: [
+        {name:'La Taillette', intervalAfter:1},
+        {name:'Grande Pièce', intervalAfter:1},
+        {name:'Pasteur', intervalAfter:1},
+        {name:'Les Gros Saules', intervalAfter:1},
+        {name:'La Jachère', intervalAfter:2},
+        {name:'Saint Martin', intervalAfter:3},
+        {name:'Montrouge', intervalAfter:2},
+        {name:'Grande Rue', intervalAfter:2},
+        {name:'Colucci Gandhi', intervalAfter:1},
+        {name:'La Croix Lieu', intervalAfter:3},
+        {name:'Maison Vallerand', intervalAfter:3},
+        {name:'Gency', intervalAfter:3},
+        {name:'Menandon', intervalAfter:4},
+        {name:'Place de la Libération', intervalAfter:2},
+        {name:'Le Port', intervalAfter:1},
+        {name:'Paradis', intervalAfter:2},
+        {name:'Les Grouettes', intervalAfter:3},
+        {name:'Conseil Départemental', intervalAfter:2},
+        {name:'Les Plants - Préfecture RER', intervalAfter:2},
+        {name:'Gare de Cergy Préfecture - Quai L', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Gare Cergy-Préfecture → La Taillette',
+      stops: [
+        {name:'Gare de Cergy Préfecture - Quai I', intervalAfter:1},
+        {name:'Les Plants', intervalAfter:3},
+        {name:'Conseil Départemental', intervalAfter:3},
+        {name:'Les Grouettes', intervalAfter:3},
+        {name:'Paradis', intervalAfter:1},
+        {name:'Le Port', intervalAfter:2},
+        {name:'Place de la Libération', intervalAfter:1},
+        {name:'Sentier', intervalAfter:1},
+        {name:'Menandon', intervalAfter:3},
+        {name:'Gency', intervalAfter:4},
+        {name:'Maison Vallerand', intervalAfter:3},
+        {name:'La Croix Lieu', intervalAfter:1},
+        {name:'Colucci Gandhi', intervalAfter:3},
+        {name:'Grande Rue', intervalAfter:1},
+        {name:'Montrouge', intervalAfter:4},
+        {name:'Saint Martin', intervalAfter:1},
+        {name:'La Jachère', intervalAfter:1},
+        {name:'Les Gros Saules', intervalAfter:2},
+        {name:'Pasteur', intervalAfter:2},
+        {name:'Grande Pièce', intervalAfter:1},
+        {name:'La Taillette', intervalAfter:0},
+      ]
+    },
+  ],
+  '1239': [
+    {
+      direction: 'aller', label: 'La Taillette → Gare Cergy Saint-Christophe',
+      stops: [
+        {name:'La Taillette', ineo:'411', intervalAfter:1},
+        {name:'Clef Des Champs', ineo:'126', intervalAfter:1},
+        {name:'Haut Rucourt', ineo:'316', intervalAfter:1},
+        {name:'Bas Rucourt', ineo:'50', intervalAfter:1},
+        {name:'Pasteur', ineo:'688', intervalAfter:1},
+        {name:'Les Gros Saules', ineo:'509', intervalAfter:1},
+        {name:'La Jachère', ineo:'390', intervalAfter:2},
+        {name:'Saint Martin', ineo:'791', intervalAfter:1},
+        {name:'Place C. Girard', ineo:'704', intervalAfter:1},
+        {name:'Bois D\'Aton', ineo:'61', intervalAfter:2},
+        {name:'Les Coudraies', ineo:'487', intervalAfter:1},
+        {name:'Rond Point du Miroir', ineo:'768', intervalAfter:1},
+        {name:'Fief À Cavan', ineo:'199', intervalAfter:1},
+        {name:'Cergy Le Haut RER', ineo:'225', intervalAfter:1},
+        {name:'Les Grès', ineo:'506', intervalAfter:1},
+        {name:'Les Explorateurs', ineo:'499', intervalAfter:1},
+        {name:'Le Hazay', ineo:'434', intervalAfter:1},
+        {name:'Le Bontemps', ineo:'420', intervalAfter:1},
+        {name:'Chemin du Soleil', ineo:'108', intervalAfter:1},
+        {name:'La Constellation', ineo:'378', intervalAfter:1},
+        {name:'Gare de Cergy Saint-Christophe RER', ineo:'248', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Gare Cergy Saint-Christophe → La Taillette',
+      stops: [
+        {name:'Gare de Cergy Saint-Christophe RER', ineo:'256', intervalAfter:1},
+        {name:'La Constellation', ineo:'377', intervalAfter:1},
+        {name:'Chemin du Soleil', ineo:'109', intervalAfter:1},
+        {name:'Le Bontemps', ineo:'419', intervalAfter:1},
+        {name:'Le Hazay', ineo:'433', intervalAfter:1},
+        {name:'Les Explorateurs', ineo:'500', intervalAfter:1},
+        {name:'Les Grès', ineo:'507', intervalAfter:1},
+        {name:'Cergy Le Haut RER', ineo:'224', intervalAfter:1},
+        {name:'Fief À Cavan', ineo:'198', intervalAfter:1},
+        {name:'Rond Point du Miroir', ineo:'766', intervalAfter:1},
+        {name:'Les Coudraies', ineo:'486', intervalAfter:1},
+        {name:'Bois D\'Aton', ineo:'60', intervalAfter:2},
+        {name:'Place C. Girard', ineo:'705', intervalAfter:1},
+        {name:'Saint Martin', ineo:'790', intervalAfter:2},
+        {name:'La Jachère', ineo:'389', intervalAfter:1},
+        {name:'Les Gros Saules', ineo:'508', intervalAfter:1},
+        {name:'Pasteur', ineo:'689', intervalAfter:1},
+        {name:'Bas-Rucourt', ineo:'49', intervalAfter:1},
+        {name:'Haut Rucourt', ineo:'309', intervalAfter:1},
+        {name:'Clef Des Champs', ineo:'125', intervalAfter:1},
+        {name:'La Taillette', ineo:'411', intervalAfter:0},
+      ]
+    },
+  ],
+  '1240': [
+    {
+      direction: 'aller', label: 'La Siaule → Cergy Saint-Christophe RER',
+      stops: [
+        {name:'La Siaule', ineo:'410', intervalAfter:1},
+        {name:'Les Valanchards', ineo:'554', intervalAfter:2},
+        {name:'Georges Brassens', ineo:'297', intervalAfter:1},
+        {name:'Mendès France', ineo:'633', intervalAfter:2},
+        {name:'La Marnière', ineo:'396', intervalAfter:2},
+        {name:'Simone Signoret', ineo:'802', intervalAfter:1},
+        {name:'Le Boulingrin', ineo:'422', intervalAfter:2},
+        {name:'Auguste Blanqui', ineo:'24', intervalAfter:1},
+        {name:'Boris Vian', ineo:'69', intervalAfter:1},
+        {name:'Rond-Point du Golf', ineo:'774', intervalAfter:1},
+        {name:'L\'Orangerie', ineo:'565', intervalAfter:1},
+        {name:'Cergy Le Haut RER', ineo:'229', intervalAfter:2},
+        {name:'Avenue du Terroir', ineo:'46', intervalAfter:1},
+        {name:'Rond-Point du Chêne', ineo:'772', intervalAfter:1},
+        {name:'Avenue de L\'Embellie', ineo:'32', intervalAfter:1},
+        {name:'Parc Saint-Christophe', ineo:'683', intervalAfter:1},
+        {name:'Rond-Point du Cèdre', ineo:'769', intervalAfter:1},
+        {name:'Lycée St Christophe', ineo:'592', intervalAfter:2},
+        {name:'Mondétour', ineo:'645', intervalAfter:1},
+        {name:'Cergy Saint-Christophe RER', ineo:'252', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Cergy Saint-Christophe RER → La Siaule',
+      stops: [
+        {name:'Cergy Saint-Christophe RER', ineo:'252', intervalAfter:1},
+        {name:'Mondétour', ineo:'645', intervalAfter:2},
+        {name:'Lycée St Christophe', ineo:'592', intervalAfter:1},
+        {name:'Parc Saint-Christophe', ineo:'683', intervalAfter:1},
+        {name:'Rond-Point du Cèdre', ineo:'769', intervalAfter:1},
+        {name:'Avenue de L\'Embellie', ineo:'32', intervalAfter:1},
+        {name:'Rond-Point du Chêne', ineo:'772', intervalAfter:1},
+        {name:'Avenue du Terroir', ineo:'46', intervalAfter:2},
+        {name:'Cergy Le Haut RER', ineo:'229', intervalAfter:1},
+        {name:'L\'Orangerie', ineo:'565', intervalAfter:1},
+        {name:'Rond-Point du Golf', ineo:'774', intervalAfter:1},
+        {name:'Boris Vian', ineo:'69', intervalAfter:1},
+        {name:'Auguste Blanqui', ineo:'24', intervalAfter:2},
+        {name:'Le Boulingrin', ineo:'422', intervalAfter:1},
+        {name:'Simone Signoret', ineo:'802', intervalAfter:2},
+        {name:'La Marnière', ineo:'396', intervalAfter:2},
+        {name:'Mendès France', ineo:'633', intervalAfter:1},
+        {name:'Georges Brassens', ineo:'297', intervalAfter:2},
+        {name:'Les Valanchards', ineo:'554', intervalAfter:1},
+        {name:'La Siaule', ineo:'410', intervalAfter:0},
+      ]
+    },
+  ],
+  '1241': [
+    {
+      direction: 'aller', label: 'Gare Cergy-Préfecture → Fond de Vaux — Lun-Ven',
+      stops: [
+        {name:'Gare de Cergy Préfecture - Quai F', intervalAfter:2},
+        {name:'Oise Hautil', intervalAfter:1},
+        {name:'Avenue de L\'Est', intervalAfter:1},
+        {name:'Ecluse', intervalAfter:2},
+        {name:'La Danne', intervalAfter:2},
+        {name:'Louis Delage', intervalAfter:2},
+        {name:'Gare de Liesse - Quai E', intervalAfter:2},
+        {name:'Marcel Dassault', intervalAfter:2},
+        {name:'Avenue de la Mare', intervalAfter:2},
+        {name:'Picardie', intervalAfter:2},
+        {name:'Les Béthunes', intervalAfter:2},
+        {name:'Vert Galant', intervalAfter:2},
+        {name:'Avenue du Château', intervalAfter:2},
+        {name:'Château D\'Eau / Les Sablons', intervalAfter:2},
+        {name:'Fond de Vaux', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Fond de Vaux → Gare Cergy-Préfecture — Lun-Ven',
+      stops: [
+        {name:'Fond de Vaux', intervalAfter:2},
+        {name:'Les Sablons', intervalAfter:2},
+        {name:'Avenue du Château', intervalAfter:2},
+        {name:'Vert Galant', intervalAfter:2},
+        {name:'Les Béthunes', intervalAfter:2},
+        {name:'Picardie', intervalAfter:2},
+        {name:'Avenue de la Mare', intervalAfter:2},
+        {name:'Marcel Dassault', intervalAfter:2},
+        {name:'Gare de Liesse - Quai B', intervalAfter:2},
+        {name:'Louis Delage', intervalAfter:2},
+        {name:'La Danne', intervalAfter:2},
+        {name:'Ecluse', intervalAfter:1},
+        {name:'Avenue de L\'Est', intervalAfter:1},
+        {name:'Oise Hautil', intervalAfter:2},
+        {name:'Gare de Cergy Préfecture - Quai F', intervalAfter:0},
+      ]
+    },
+  ],
+  '1242': [
+    {
+      direction: 'aller', label: 'Gare Cergy-Préfecture → Clinique Sainte Marie',
+      stops: [
+        {name:'Gare de Cergy Préfecture - Quai H', ineo:'244', intervalAfter:4},
+        {name:'Les Marjoberts', ineo:'527', intervalAfter:2},
+        {name:'Cité Artisanale', ineo:'122', intervalAfter:2},
+        {name:'Falaise', ineo:'192', intervalAfter:1},
+        {name:'Beaux Soleils', ineo:'52', intervalAfter:1},
+        {name:'Avenue des Arpents', ineo:'39', intervalAfter:1},
+        {name:'Jules César', ineo:'344', intervalAfter:1},
+        {name:'Jules César - Général de Gaulle', ineo:'348', intervalAfter:1},
+        {name:'La Ravinière', ineo:'404', intervalAfter:1},
+        {name:'Les Pâtis', ineo:'530', intervalAfter:1},
+        {name:'William Thornley', ineo:'836', intervalAfter:2},
+        {name:'Fond de Chars', ineo:'205', intervalAfter:1},
+        {name:'Fleurance Muguet', ineo:'200', intervalAfter:1},
+        {name:'Demi Lieue', ineo:'165', intervalAfter:2},
+        {name:'Oseraie', ineo:'672', intervalAfter:2},
+        {name:'Lycée Paul-Emile Victor', ineo:'588', intervalAfter:1},
+        {name:'Clinique Sainte Marie', ineo:'129', intervalAfter:0},
+      ]
+    },
+    {
+      direction: 'retour', label: 'Clinique Sainte Marie → Gare Cergy-Préfecture',
+      stops: [
+        {name:'Clinique Sainte Marie', ineo:'129', intervalAfter:1},
+        {name:'Lycée Paul-Emile Victor', ineo:'587', intervalAfter:1},
+        {name:'Centre Commercial de L\'Oseraie', ineo:'85', intervalAfter:2},
+        {name:'Demi Lieue', ineo:'166', intervalAfter:1},
+        {name:'Fleurance Muguet', ineo:'201', intervalAfter:1},
+        {name:'Fond de Chars', ineo:'204', intervalAfter:2},
+        {name:'William Thornley', ineo:'837', intervalAfter:2},
+        {name:'Les Pâtis', ineo:'531', intervalAfter:1},
+        {name:'La Ravinière', ineo:'405', intervalAfter:1},
+        {name:'Jules César - Général de Gaulle', ineo:'349', intervalAfter:1},
+        {name:'Jules César', ineo:'347', intervalAfter:1},
+        {name:'Avenue des Arpents', ineo:'38', intervalAfter:1},
+        {name:'Beaux Soleils', ineo:'51', intervalAfter:1},
+        {name:'Falaise', ineo:'193', intervalAfter:2},
+        {name:'Cité Artisanale', ineo:'121', intervalAfter:2},
+        {name:'Les Marjoberts', ineo:'526', intervalAfter:1},
+        {name:'Université des Chênes - Préfecture RER', ineo:'821', intervalAfter:2},
+        {name:'Gare de Cergy Préfecture - Quai B', ineo:'238', intervalAfter:0},
+      ]
+    },
+  ],
+};
+
+
+// ── Init DB ──────────────────────────────────────────────────────
+let db = { lines: [] };
+function initDB() {
+  db.lines = REAL_LINES.map(rl => ({
+    num: rl.num, name: rl.name, color: rl.color,
+    trips: (PRELOADED_TRIPS[rl.num] || []).map(t => ({
+      direction: t.direction, label: t.label, keywords: t.keywords||[], isDefault: t.isDefault||false,
+      stops: t.stops.map(s => ({ name: s.name, ineo: s.ineo||'', time:'00:00', intervalAfter: s.intervalAfter||1 }))
+    }))
+  }));
+}
+initDB();
+
+// ── Utilitaires ──────────────────────────────────────────────────
+function normalize(s) {
+  return s.toUpperCase()
+    .replace(/[ÉÈÊË]/g,'E').replace(/[ÀÂÄÃ]/g,'A').replace(/[ÙÛÜÚ]/g,'U')
+    .replace(/[ÎÏÍÌ]/g,'I').replace(/[ÔÖÓÒ]/g,'O').replace(/[Ç]/g,'C')
+    .replace(/['\-\.]/g,' ').replace(/\s+/g,' ').trim();
+}
+function toMin(t) { if(!t) return 0; const [h,m]=t.split(':').map(Number); return h*60+m; }
+function fromMin(m) { m=((m%1440)+1440)%1440; return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`; }
+
+// ── Pré-traitement : normalise le texte collé en lignes propres ──
+function preprocessText(raw) {
+  let t = raw
+    .replace(/\r\n/g,'\n').replace(/\r/g,'\n')
+    // 1. Supprime les régulations "--- Régulation de X mn ---"
+    .replace(/---\s*[Rr]é?gul[^\n-]*---/g, ' ')
+    // 2. Sépare les durees collees ex: "351 00:061201"
+    .replace(/(\d{3,4})\s*(00:\d{2})(\d{4})/g, '$1\n$2\n$3')
+    // 3. Sépare en-tête trajet collé : "12021201 - ..." ou "1002\n1201 - ..."
+    .replace(/(\d{4})\s*(\d{4}\s*-\s*[A-ZÀÂÉÈÊËÎÏÔÙÛÜ][^\n]{3,}?>>)/g, '$1\n$2')
+    // 4. Sépare HH:MM ITINERAIRE
+    .replace(/(\d{2}:\d{2}[^\n]*?)\s+(ITINERAIRE)/g, '$1\nITINERAIRE')
+    // 5. Sépare "ITINERAIRE NOM - INEO" (sans -->) du premier poteau
+    //    ex: "ITINERAIRE JULES VERNE - 351 21:22 --> ..."
+    .replace(/ITINERAIRE\s+([A-ZÀÂÉÈÊËÎÏÔÙÛÜ][^\n]*?\s+-\s*\d+)\s+(\d{2}:\d{2}\s*-->)/g, 'ITINERAIRE\n$2')
+    // 6. Sépare rectangle fin collé : "NOM - INEO HH:MM NOM - INEO DUREE SVCNUM"
+    .replace(/(\d{2}:\d{2}[^\n]*?\d{2,4})\s+(\d{2}:\d{2}\s+[A-ZÀÂÉÈÊËÎÏÔÙÛÜ])/g, '$1\n$2')
+    // 7. Avant HLP
+    .replace(/(\S)\s+(HLP\s+\d{2}:\d{2})/g, '$1\n$2')
+    // 8. Avant PS / FS
+    .replace(/(\S)\s+(PS\s+\d{2}:\d{2})/g, '$1\n$2')
+    .replace(/(\S)\s+(FS\s+\d{2}:\d{2})/g, '$1\n$2')
+    // 9. Sépare les collages directs sans espace : "TEXTE21:22" → "TEXTE\n21:22"
+    .replace(/([A-Za-zÀ-ÿ\d])(\d{2}:\d{2})/g, '$1\n$2')
+    // 10. Sépare les --> collés sans saut de ligne
+    .replace(/(\d{2}:\d{2}\s*-->\s*[^\n]+?)\s+(?=\d{2}:\d{2}\s*-->)/g, '$1\n')
+    // 11. Sépare ITINERAIRE HH:MM --> sur la même ligne
+    .replace(/ITINERAIRE\s+(\d{2}:\d{2}\s*-->)/g, 'ITINERAIRE\n$1');
+
+  return t.split('\n').map(l => l.trim()).filter(l => l);
+}
+
+// ── Recherche du trajet INEO dans la DB par numéros de poteaux ──
+function findTripByIneo(dbLine, refStops, lineNum) {
+  const refIneos = refStops.map(r => r.ineo).filter(Boolean);
+  const refSet = new Set(refIneos);
+
+  // Texte normalisé de tous les noms d'arrêts de référence (pour matching keywords)
+  const refNamesText = refStops.map(r => normalize(r.name)).join(' ');
+  const refIneoSet = new Set(refStops.map(r => r.ineo).filter(Boolean));
+
+  // ── Règle spéciale 1206 : Maison D'Arrêt ────────────────────────
+  const MAISON_ARRET_INEO = '607';
+  const CERGY_LEHAUT_INEO = '230';
+  const refHasMaisonArret = refIneoSet.has(MAISON_ARRET_INEO) ||
+    refStops.some(r => normalize(r.name).includes('MAISON') && normalize(r.name).includes('ARRET'));
+  const refHasCergyLeHaut = refIneoSet.has(CERGY_LEHAUT_INEO) ||
+    refStops.some(r => normalize(r.name).includes('CERGY') && normalize(r.name).includes('HAUT'));
+
+  if(lineNum === '1206') {
+    // Cas 1 : Maison D'Arrêt ET Cergy Le Haut dans les poteaux → forcer trajet "via Maison D'Arrêt"
+    if(refHasMaisonArret || refHasCergyLeHaut) {
+      const forced = dbLine.trips.find(t =>
+        t.stops.some(s => s.ineo === MAISON_ARRET_INEO) &&
+        t.stops.some(s => s.ineo === CERGY_LEHAUT_INEO) &&
+        t.stops.length > 15
+      );
+      if(forced) return { trip: forced, score: 9999 };
+    }
+    // Cas 2 : Pas de Maison D'Arrêt → exclure tous les trajets qui passent par Maison D'Arrêt
+  }
+
+  let bestTrip = null, bestScore = -Infinity;
+  dbLine.trips.forEach(trip => {
+    const tripIneos = new Set(trip.stops.map(s => s.ineo).filter(Boolean));
+
+    // ── Exclusion Maison D'Arrêt pour ligne 1206 ──────────────────
+    if(lineNum === '1206') {
+      const tripHasMaisonArret = tripIneos.has(MAISON_ARRET_INEO);
+      // Si le ref n'a pas Maison D'Arrêt mais le trajet oui → ignorer ce trajet
+      if(!refHasMaisonArret && tripHasMaisonArret) return;
+    }
+
+    // Bonus keywords : si un mot-clé du trajet apparaît dans les noms des poteaux ref
+    let keyBonus = 0;
+    if(trip.keywords && trip.keywords.length) {
+      const hasKeyword = trip.keywords.some(kw => refNamesText.includes(normalize(kw)));
+      if(hasKeyword) keyBonus = 10000; // priorité absolue
+    }
+
+    // Score INEO
+    let matches = 0;
+    if(refSet.size > 0) {
+      refSet.forEach(ineo => { if(tripIneos.has(ineo)) matches++; });
+    }
+    const missing = refSet.size - matches;
+    const defaultBonus = (!keyBonus && trip.isDefault) ? 200 : 0;
+    const score = keyBonus + defaultBonus + matches * 1000 - missing * 500 - (tripIneos.size - matches);
+    if(score > bestScore) { bestScore = score; bestTrip = trip; }
+  });
+  const tripIneos = new Set(bestTrip.stops.map(s => s.ineo).filter(Boolean));
+  const realMatches = refSet.size > 0 ? [...refSet].filter(i => tripIneos.has(i)).length : 0;
+  return { trip: bestTrip, score: realMatches };
+}
+
+// ── Construction du trajet depuis les arrêts de référence ────────
+function buildTripFromRef(lineNum, refStops, svcNum, log=[]) {
+  const dbLine = db.lines.find(l => l.num === lineNum);
+  if(!dbLine) {
+    // Ligne inconnue : retour basique
+    return {
+      lineNum, lineColor:'#888', label:`Ligne ${lineNum}`, svcNum,
+      warn:`Ligne ${lineNum} inconnue dans la base`,
+      stops: refStops.map((s,i) => ({
+        name: s.name, ineo: s.ineo, time: s.time,
+        intervalAfter: i < refStops.length-1 ? Math.max(1, toMin(refStops[i+1].time)-toMin(s.time)) : 0,
+        isRef: true
+      }))
+    };
+  }
+
+  // 1. Trouver le meilleur trajet : d'abord par INEO, puis par nom si pas assez d'INEO
+  let sourceTrip = null;
+  const byIneo = findTripByIneo(dbLine, refStops, lineNum);
+  if(byIneo && byIneo.score > 0) {
+    sourceTrip = byIneo.trip;
+  } else {
+    // Fallback : matching par nom normalisé
+    const refNorm = refStops.map(r => normalize(r.name));
+    let bestScore = -1;
+    dbLine.trips.forEach(trip => {
+      let matches = 0;
+      refNorm.forEach(rn => {
+        if(trip.stops.some(s => normalize(s.name).includes(rn) || rn.includes(normalize(s.name)))) matches++;
+      });
+      if(matches > bestScore) { bestScore = matches; sourceTrip = trip; }
+    });
+  }
+  if(!sourceTrip) sourceTrip = dbLine.trips[0];
+  if(!sourceTrip) return null;
+
+  // 2. Copier tous les arrêts du trajet source
+  let allStops = sourceTrip.stops.map(s => ({
+    name: s.name, ineo: s.ineo||'', time:'', intervalAfter: s.intervalAfter||1,
+    isRef: false, refTime: null
+  }));
+
+  // 2b. Vérifier le sens : trouver les positions du 1er et dernier arrêt de ref dans allStops
+  //     Si le 1er arrêt ref est APRÈS le dernier dans la liste → trajet inversé → on retourne
+  function findStopIdx(stops, ref) {
+    if(ref.ineo) {
+      const i = stops.findIndex(s => s.ineo === ref.ineo);
+      if(i >= 0) return i;
+    }
+    const rn = normalize(ref.name);
+    return stops.findIndex(s => normalize(s.name) === rn || normalize(s.name).includes(rn) || rn.includes(normalize(s.name)));
+  }
+  if(refStops.length >= 2) {
+    const idxFirst = findStopIdx(allStops, refStops[0]);
+    const idxLast  = findStopIdx(allStops, refStops[refStops.length-1]);
+    if(idxFirst > idxLast && idxFirst >= 0 && idxLast >= 0) {
+      // Sens inversé : retourner allStops
+      allStops = allStops.reverse();
+      log && log.push('🔄 Sens inversé automatiquement ('+refStops[0].name+' → '+refStops[refStops.length-1].name+')');
+    }
+  }
+
+  // 3. Associer chaque arrêt de référence au meilleur arrêt de la liste
+  //    Priorité : matching INEO exact, puis matching nom normalisé
+  refStops.forEach(ref => {
+    // Essai INEO
+    if(ref.ineo) {
+      const idx = allStops.findIndex(s => s.ineo === ref.ineo);
+      if(idx >= 0) {
+        allStops[idx].isRef = true;
+        allStops[idx].refTime = ref.time;
+        allStops[idx].time = ref.time;
+        return;
+      }
+    }
+    // Fallback nom normalisé
+    const rn = normalize(ref.name);
+    let bestIdx = -1, bestMatch = 0;
+    allStops.forEach((s, idx) => {
+      if(s.isRef) return; // déjà pris
+      const sn = normalize(s.name);
+      const score = sn.includes(rn) || rn.includes(sn) ? Math.min(sn.length, rn.length) : 0;
+      if(score > bestMatch) { bestMatch = score; bestIdx = idx; }
+    });
+    if(bestIdx >= 0 && bestMatch > 3) {
+      allStops[bestIdx].isRef = true;
+      allStops[bestIdx].refTime = ref.time;
+      allStops[bestIdx].time = ref.time;
+    }
+  });
+
+  // 4. Tronquer entre premier et dernier arrêt de référence
+  const refIndices = allStops.map((s,i) => s.isRef ? i : -1).filter(i => i >= 0);
+  if(refIndices.length === 0) return null;
+  const trimmed = allStops.slice(refIndices[0], refIndices[refIndices.length-1]+1);
+
+  // 5. Interpolation linéaire entre les arrêts de référence
+  const tRefIdx = trimmed.map((s,i) => s.isRef ? i : -1).filter(i => i >= 0);
+  for(let r=0; r<tRefIdx.length-1; r++) {
+    const iA = tRefIdx[r], iB = tRefIdx[r+1];
+    const tA = toMin(trimmed[iA].refTime), tB = toMin(trimmed[iB].refTime);
+    const totalIv = trimmed.slice(iA, iB).reduce((acc,s) => acc+(s.intervalAfter||1), 0);
+    const scale = totalIv > 0 ? (tB-tA)/totalIv : 1;
+    let cumul = 0;
+    for(let k=iA+1; k<iB; k++) {
+      cumul += (trimmed[k-1].intervalAfter||1);
+      trimmed[k].time = fromMin(Math.round(tA + cumul*scale));
+    }
+  }
+
+  // 6. Recalcul intervalAfter réels
+  trimmed.forEach((s,i) => {
+    if(i < trimmed.length-1 && s.time && trimmed[i+1].time) {
+      const diff = toMin(trimmed[i+1].time) - toMin(s.time);
+      s.intervalAfter = Math.max(1, diff);
+    }
+  });
+  if(trimmed.length > 0) trimmed[trimmed.length-1].intervalAfter = 0;
+
+  return {
+    lineNum, lineColor: dbLine.color, svcNum,
+    label: `Ligne ${lineNum} — ${trimmed[0].name} → ${trimmed[trimmed.length-1].name}`,
+    tripLabel: sourceTrip.label,
+    matchScore: byIneo ? byIneo.score : '?',
+    stops: trimmed
+  };
+}
+
+// ── Parseur principal ────────────────────────────────────────────
+function parseIneoFeuille(raw) {
+  const lines = preprocessText(raw);
+  let depotDepart='', depotRetour='';
+  let trips=[];
+  let currentLineNum=null, currentRefStops=[], currentSvcNum='';
+  let i=0;
+  const log=[];
+
+  while(i < lines.length) {
+    const line = lines[i];
+
+    // PRISE DE SERVICE
+    const psM = line.match(/(\d{2}:\d{2})\s+PRISE\s+DE\s+SERVICE/i);
+    if(psM) { depotDepart=psM[1]; log.push(`✅ Prise de service : ${psM[1]}`); i++; continue; }
+
+    // FIN DE SERVICE
+    const fsM = line.match(/(?:FS\s+)?(\d{2}:\d{2})\s+FIN\s+DE\s+SERVICE/i);
+    if(fsM) { depotRetour=fsM[1]; log.push(`✅ Fin de service : ${fsM[1]}`); i++; continue; }
+
+    // HLP → ignorer
+    if(/^HLP\b/i.test(line)) { log.push(`⏭ HLP ignoré`); i++; continue; }
+
+    // En correspondance → ignorer
+    if(/^En correspondance/i.test(line)) { i++; continue; }
+
+    // En-tête de trajet : "1226 - GARE DE CERG >> GARE DE MÉRY"
+    const ligneM = line.match(/^(\d{4})\s*-\s*(.+?)\s*>>\s*(.+)$/);
+    if(ligneM) {
+      // Sauver trajet précédent
+      if(currentLineNum && currentRefStops.length > 0) {
+        const t = buildTripFromRef(currentLineNum, currentRefStops, currentSvcNum, log);
+        if(t) trips.push(t);
+        else log.push(`⚠️ Trajet ${currentLineNum} non reconstruit`);
+      }
+      currentLineNum = ligneM[1];
+      currentRefStops = [];
+      currentSvcNum = '';
+      log.push(`🚌 Ligne détectée : ${currentLineNum} (${ligneM[2].trim()} >> ${ligneM[3].trim()})`);
+      i++; continue;
+    }
+
+    // Ligne de rectangle : "HH:MM NOM - INEO  HH:MM NOM - INEO  DUREE  SVC"
+    // Détecte le numéro de service (dernier token numérique de 4 chiffres)
+    const svcM = line.match(/\b(\d{4})\s*$/);
+    if(svcM && currentLineNum && !currentRefStops.length) {
+      currentSvcNum = svcM[1];
+      log.push(`📋 N° service : ${currentSvcNum}`);
+      i++; continue;
+    }
+
+    // ITINERAIRE + éventuellement premier arrêt sur la même ligne
+    if(/^ITINERAIRE/i.test(line)) {
+      const firstM = line.match(/(\d{2}:\d{2})\s*-->\s*(.+?)(?:\s+-\s+(\d+))?/);
+      if(firstM) {
+        currentRefStops.push({ time: firstM[1], name: firstM[2].trim(), ineo: firstM[3]||'' });
+      }
+      i++;
+      while(i < lines.length) {
+        const al = lines[i];
+        // Stop si nouvelle ligne de trajet, HLP, PS, FS
+        if(/^\d{4}\s*-\s*.+?>>/.test(al) || /^HLP\b/i.test(al) || /^PS\b/i.test(al) || /^FS\b/i.test(al)) break;
+        // Skip lignes de régulation, durées (00:XX), numéros seuls
+        if(/^---/.test(al) || /régul/i.test(al) || /^\d{4}$/.test(al) || /^00:\d{2}$/.test(al)) { i++; continue; }
+        // Strip régulation en fin de ligne puis tester -->
+        const cleanAl = al.replace(/\s*---.*$/, '').trim();
+        const am = cleanAl.match(/^(\d{2}:\d{2})\s*-->\s*(.+?)(?:\s+-\s+(\d+))?\s*$/);
+        if(am) {
+          currentRefStops.push({ time: am[1], name: am[2].trim(), ineo: am[3]||'' });
+          i++;
+        } else { i++; } // ligne inconnue (rectangle, etc.) → skip sans casser la boucle
+      }
+      log.push(`📍 ${currentRefStops.length} arrêts de régulation collectés`);
+      continue;
+    }
+
+    // Ligne HH:MM --> hors bloc ITINERAIRE
+    if(currentLineNum) {
+      const cleanLine = line.replace(/\s*---.*$/, '').trim();
+      const am = cleanLine.match(/^(\d{2}:\d{2})\s*-->\s*(.+?)(?:\s+-\s+(\d+))?\s*$/);
+      if(am) {
+        currentRefStops.push({ time: am[1], name: am[2].trim(), ineo: am[3]||'' });
+        i++; continue;
+      }
+    }
+
+    i++;
+  }
+
+  // Dernier trajet
+  if(currentLineNum && currentRefStops.length > 0) {
+    const t = buildTripFromRef(currentLineNum, currentRefStops, currentSvcNum, log);
+    if(t) trips.push(t);
+  }
+
+  return { depotDepart, depotRetour, trips, log };
+}
+
+// ── LocalStorage (même clé que Chronoligne) ─────────────────────
+const ROADMAP_KEY = 'chronoligne_roadmaps';
+let toastTimer;
+
+function toast(msg) {
+  const el = document.getElementById('toast-el');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+function loadServices() {
+  try { return JSON.parse(localStorage.getItem(ROADMAP_KEY)||'[]'); } catch(e) { return []; }
+}
+function saveServices(svcs) {
+  localStorage.setItem(ROADMAP_KEY, JSON.stringify(svcs));
+}
+
+// ── Export JSON (compatible Chronoligne) ────────────────────────
+function exportJSON() {
+  const svcs = loadServices();
+  if(!svcs.length) { toast('Aucun service à exporter'); return; }
+  const json = JSON.stringify(svcs, null, 2);
+  const blob = new Blob([json], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `chronoligne_services_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast(`✅ ${svcs.length} service(s) exporté(s)`);
+}
+
+// ── Import JSON ──────────────────────────────────────────────────
+function importJSON(event) {
+  const file = event.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      let data = JSON.parse(e.target.result);
+      // Accepte tableau direct ou wrapper chronoligne
+      if(!Array.isArray(data)) {
+        if(data.chronoligne_services) data = data.services;
+        else if(Array.isArray(data.services)) data = data.services;
+        else throw new Error();
+      }
+      const existing = loadServices();
+      let added=0, updated=0;
+      data.forEach(s => {
+        const idx = existing.findIndex(r => r.num===s.num && r.jour===s.jour);
+        if(idx===-1) { existing.push(s); added++; }
+        else { existing[idx]=s; updated++; }
+      });
+      saveServices(existing);
+      renderSvcList();
+      toast(`✅ ${added} ajouté(s), ${updated} mis à jour`);
+    } catch(err) { toast('❌ Fichier JSON invalide'); }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ── Afficher le panneau de saisie ────────────────────────────────
+function showParsePanel() {
+  const p = document.getElementById('parse-panel');
+  p.style.display = 'block';
+  document.getElementById('result').innerHTML = '';
+  document.getElementById('ineo-text').value = '';
+  p.scrollIntoView({ behavior:'smooth' });
+  setTimeout(() => document.getElementById('ineo-text').focus(), 300);
+}
+
+// ── Panneau ajout manuel ─────────────────────────────────────────
+function toggleAddPanel() {
+  const p = document.getElementById('add-trip-panel');
+  const visible = p.style.display !== 'none';
+  p.style.display = visible ? 'none' : 'block';
+  if(!visible) {
+    // Populate line selector
+    const sel = document.getElementById('add-line-sel');
+    sel.innerHTML = '<option value="">— Ligne —</option>';
+    db.lines.forEach((l,i) => {
+      sel.innerHTML += `<option value="${i}">Ligne ${l.num} — ${l.name}</option>`;
+    });
+  }
+}
+
+function addTripRenderTrips() {
+  const lineIdx = parseInt(document.getElementById('add-line-sel').value);
+  const sel = document.getElementById('add-trip-sel');
+  sel.innerHTML = '<option value="">— Trajet —</option>';
+  if(isNaN(lineIdx)) return;
+  const line = db.lines[lineIdx];
+  if(!line) return;
+  line.trips.forEach((t,i) => {
+    sel.innerHTML += `<option value="${i}">${t.label}</option>`;
+  });
+}
+
+function addTripManual() {
+  const lineIdx = parseInt(document.getElementById('add-line-sel').value);
+  const tripIdx = parseInt(document.getElementById('add-trip-sel').value);
+  if(isNaN(lineIdx)||isNaN(tripIdx)) { toast('Sélectionnez une ligne et un trajet'); return; }
+  const firstTimeVal = document.getElementById('add-first-time').value;
+  const intervalGlobal = parseInt(document.getElementById('add-interval').value)||1;
+  const line = db.lines[lineIdx];
+  if(!line) return;
+  const trip = line.trips[tripIdx];
+  if(!trip) return;
+
+  // Appliquer les intervalles mémorisés (même mécanisme que Chronoligne)
+  const INTERVALS_KEY = 'chronoligne_intervals';
+  let db_int = {};
+  try { db_int = JSON.parse(localStorage.getItem(INTERVALS_KEY)||'{}'); } catch(e) {}
+
+  let curMin = 0;
+  if(firstTimeVal) {
+    const [h,m] = firstTimeVal.split(':').map(Number);
+    curMin = h*60+m;
+  }
+
+  const stops = trip.stops.map((s,i) => {
+    const h = String(Math.floor(curMin/60)%24).padStart(2,'0');
+    const m = String(curMin%60).padStart(2,'0');
+    const time = `${h}:${m}`;
+    const savedIv = db_int[`${line.num}||${trip.label}||${s.name}`];
+    const iv = savedIv !== undefined ? savedIv : (s.intervalAfter||intervalGlobal);
+    if(i < trip.stops.length-1) curMin += iv;
+    return { name:s.name, ineo:s.ineo||'', time, intervalAfter:iv, isRef:false };
+  });
+
+  const nbMemo = stops.filter(s => db_int[`${line.num}||${trip.label}||${s.name}`] !== undefined).length;
+
+  if(!lastParsed) {
+    lastParsed = { depotDepart:'', depotRetour:'', trips:[] };
+    // Show result area with save bar
+    const out = document.getElementById('result');
+    const autoNum = '';
+    out.innerHTML = `<div class="save-bar">
+      <span style="font-size:13px;font-weight:700;color:var(--green)">💾 Enregistrer</span>
+      <input type="text" id="save-num" placeholder="N° service" value="${autoNum}" style="width:110px">
+      <select id="save-jour">
+        <option value="semaine">📅 Semaine</option>
+        <option value="samedi">📅 Samedi</option>
+        <option value="dimanche">📅 Dimanche</option>
+      </select>
+      <button class="btn btn-sm btn-nouveau" onclick="saveService(lastParsed)" style="margin-top:0">💾 Enregistrer</button>
+    </div>`;
+  }
+
+  // Ajouter le trajet à lastParsed
+  lastParsed.trips.push({
+    lineNum: line.num,
+    lineColor: line.color,
+    label: `Ligne ${line.num} — ${trip.label}`,
+    tripLabel: trip.label,
+    matchScore: nbMemo,
+    stops
+  });
+
+  // Mettre à jour l'heure de départ pour le prochain trajet
+  const lastStop = stops[stops.length-1];
+  document.getElementById('add-first-time').value = lastStop.time;
+
+  reRenderAllTrips();
+  document.getElementById('add-trip-panel').style.display = 'none';
+  toast(nbMemo > 0 ? `Trajet ajouté ✓ (${nbMemo} intervalles mémorisés)` : 'Trajet ajouté ✓');
+}
+
+// ── Filtre actif pour la liste ───────────────────────────────────
+let _svcFilter = 'semaine';
+
+function setSvcFilter(f) {
+  _svcFilter = f;
+  document.querySelectorAll('.svc-filter-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.filter === f);
+  });
+  renderSvcList();
+}
+
+// ── Liste des services enregistrés ──────────────────────────────
+function renderSvcList() {
+  const allSvcs = loadServices();
+  const section = document.getElementById('svc-list-section');
+  const cnt = document.getElementById('svc-count');
+
+  if(!allSvcs.length) {
+    if(cnt) cnt.textContent = '';
+    section.innerHTML = '';
+    return;
+  }
+
+  // Compter par catégorie
+  const cSem = allSvcs.filter(s=>(s.jour||'semaine')==='semaine').length;
+  const cSat = allSvcs.filter(s=>s.jour==='samedi').length;
+  const cDim = allSvcs.filter(s=>s.jour==='dimanche').length;
+
+  // Filtrer + trier par numéro croissant
+  const svcs = allSvcs
+    .filter(s => (s.jour||'semaine') === _svcFilter)
+    .sort((a,b) => {
+      const na = parseInt(a.num)||0, nb = parseInt(b.num)||0;
+      return na - nb;
+    });
+
+  if(cnt) cnt.textContent = `${allSvcs.length} service(s)`;
+
+  // Barre de filtres
+  const filterBar = `<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+    <button class="svc-filter-btn${_svcFilter==='semaine'?' active':''}" data-filter="semaine" onclick="setSvcFilter('semaine')"
+      style="flex:1;padding:8px 4px;border-radius:8px;border:1px solid ${_svcFilter==='semaine'?'var(--accent)':'var(--border)'};background:${_svcFilter==='semaine'?'rgba(0,212,255,.15)':'rgba(255,255,255,.04)'};color:${_svcFilter==='semaine'?'var(--accent)':'var(--muted)'};font-weight:700;font-size:12px;cursor:pointer">
+      📅 Semaine<br><span style="font-size:16px;color:var(--text)">${cSem}</span>
+    </button>
+    <button class="svc-filter-btn${_svcFilter==='samedi'?' active':''}" data-filter="samedi" onclick="setSvcFilter('samedi')"
+      style="flex:1;padding:8px 4px;border-radius:8px;border:1px solid ${_svcFilter==='samedi'?'var(--orange)':'var(--border)'};background:${_svcFilter==='samedi'?'rgba(245,158,11,.15)':'rgba(255,255,255,.04)'};color:${_svcFilter==='samedi'?'var(--orange)':'var(--muted)'};font-weight:700;font-size:12px;cursor:pointer">
+      🟠 Samedi<br><span style="font-size:16px;color:var(--text)">${cSat}</span>
+    </button>
+    <button class="svc-filter-btn${_svcFilter==='dimanche'?' active':''}" data-filter="dimanche" onclick="setSvcFilter('dimanche')"
+      style="flex:1;padding:8px 4px;border-radius:8px;border:1px solid ${_svcFilter==='dimanche'?'#a78bfa':'var(--border)'};background:${_svcFilter==='dimanche'?'rgba(167,139,250,.15)':'rgba(255,255,255,.04)'};color:${_svcFilter==='dimanche'?'#a78bfa':'var(--muted)'};font-weight:700;font-size:12px;cursor:pointer">
+      🟣 Dimanche<br><span style="font-size:16px;color:var(--text)">${cDim}</span>
+    </button>
+  </div>`;
+
+  if(!svcs.length) {
+    section.innerHTML = filterBar + `<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Aucun service ${_svcFilter}</div>`;
+    return;
+  }
+
+  // Trouver l'index réel dans allSvcs pour deleteSvc/editSvc
+  const rows = svcs.map(s => {
+    const realIdx = allSvcs.indexOf(s);
+    const lines = s.trips.map(t => {
+      const num = t.lineNum || (t.label||'').match(/Ligne (\S+)/)?.[1] || '?';
+      const color = t.lineColor || '#888';
+      return `<span style="background:${color};color:#fff;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:700">${num}</span>`;
+    }).join(' ');
+    const depot = s.depotDepart ? `${s.depotDepart}→${s.depotRetour||'?'}` : '';
+    return `<div class="svc-item">
+      <span class="svc-item-num">Svc ${s.num}</span>
+      <span class="svc-item-lines">${lines} ${depot ? '<span style="color:var(--muted);font-size:10px">· '+depot+'</span>' : ''}</span>
+      <button class="svc-item-edit" onclick="editSvc(${realIdx})" title="Modifier">✏️</button>
+      <button class="svc-item-del" onclick="deleteSvc(${realIdx})" title="Supprimer">✕</button>
+    </div>`;
+  }).join('');
+
+  section.innerHTML = filterBar + `<div class="svc-list-wrap">${rows}</div>`;
+}
+
+function deleteSvc(idx) {
+  const svcs = loadServices();
+  const s = svcs[idx];
+  if(!s) return;
+  // Marquer pour suppression - demander confirmation inline
+  const item = document.querySelector(`.svc-item:nth-child(${idx+1})`);
+  const section = document.getElementById('svc-list-section');
+  // Créer un bandeau de confirmation dans la liste
+  const confirmId = 'del-confirm-'+idx;
+  if(document.getElementById(confirmId)) return; // déjà affiché
+  const div = document.createElement('div');
+  div.id = confirmId;
+  div.style.cssText = 'background:rgba(231,76,60,.15);border:1px solid rgba(231,76,60,.4);border-radius:8px;padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;gap:10px;font-size:13px;';
+  div.innerHTML = `<span style="flex:1;color:var(--red)">🗑 Supprimer Svc <b>${s.num}</b> (${s.jour||'semaine'}) ?</span>
+    <button onclick="confirmDeleteSvc(${idx},'${confirmId}')" style="background:var(--red);border:none;color:#fff;font-weight:700;padding:6px 14px;border-radius:6px;cursor:pointer">Oui</button>
+    <button onclick="document.getElementById('${confirmId}').remove()" style="background:rgba(255,255,255,.1);border:1px solid var(--border);color:var(--text);font-weight:700;padding:6px 14px;border-radius:6px;cursor:pointer">Non</button>`;
+  section.insertBefore(div, section.firstChild);
+  div.scrollIntoView({behavior:'smooth'});
+}
+
+function confirmDeleteSvc(idx, confirmId) {
+  const svcs = loadServices();
+  const s = svcs[idx];
+  if(!s) return;
+  svcs.splice(idx,1);
+  saveServices(svcs);
+  document.getElementById(confirmId)?.remove();
+  renderSvcList();
+  toast(`🗑 Service ${s.num} supprimé`);
+}
+
+// ── Enregistrer le service parsé ─────────────────────────────────
+function saveService(parsedData) {
+  const num = document.getElementById('save-num').value.trim();
+  const jour = document.getElementById('save-jour').value;
+  if(!num) { toast('Entrez un numéro de service'); return; }
+
+  const svc = {
+    num, jour,
+    depotDepart: parsedData.depotDepart || '',
+    depotRetour: parsedData.depotRetour || '',
+    heures: null,
+    trips: parsedData.trips.map(t => ({
+      lineNum: t.lineNum,
+      lineColor: t.lineColor,
+      label: t.label,
+      stops: t.stops
+    }))
+  };
+
+  if(svc.depotDepart && svc.depotRetour) {
+    const [hD,mD] = svc.depotDepart.split(':').map(Number);
+    const [hR,mR] = svc.depotRetour.split(':').map(Number);
+    let diff = (hR*60+mR) - (hD*60+mD);
+    if(diff < 0) diff += 1440;
+    svc.heures = diff / 60;
+  }
+
+  // ── Sauvegarder les intervalles réels dans chronoligne_intervals ──
+  // Même clé que Chronoligne : "lineNum||tripLabel||stopName"
+  const INTERVALS_KEY = 'chronoligne_intervals';
+  let db_int = {};
+  try { db_int = JSON.parse(localStorage.getItem(INTERVALS_KEY)||'{}'); } catch(e) {}
+  let nbSaved = 0;
+  parsedData.trips.forEach(t => {
+    const dbLine = db.lines.find(l => l.num === t.lineNum);
+    if(!dbLine) return;
+    const tripIneos = new Set(t.stops.map(s => s.ineo).filter(Boolean));
+    let bestTrip = null, bestScore = -1;
+    dbLine.trips.forEach(trip => {
+      const matches = trip.stops.filter(s => s.ineo && tripIneos.has(s.ineo)).length;
+      if(matches > bestScore) { bestScore = matches; bestTrip = trip; }
+    });
+    if(!bestTrip) return;
+    t.stops.forEach(s => {
+      if(s.intervalAfter !== undefined && s.intervalAfter > 0) {
+        const key = `${t.lineNum}||${bestTrip.label}||${s.name}`;
+        db_int[key] = s.intervalAfter;
+        nbSaved++;
+      }
+    });
+  });
+  localStorage.setItem(INTERVALS_KEY, JSON.stringify(db_int));
+
+  const svcs = loadServices();
+  const idx = svcs.findIndex(s => s.num===num && s.jour===jour);
+  if(idx===-1) svcs.push(svc);
+  else svcs[idx] = svc;
+  // Trier par numéro croissant avant de sauvegarder
+  svcs.sort((a,b) => (parseInt(a.num)||0) - (parseInt(b.num)||0));
+  saveServices(svcs);
+  _svcFilter = jour;
+  renderSvcList();
+  switchTab('parseur');
+  document.getElementById('result').innerHTML = '';
+  document.getElementById('ineo-text').value = '';
+  document.getElementById('parse-panel').style.display = 'none';
+  toast(`✅ Service ${num} enregistré · ${nbSaved} intervalles mémorisés`);
+}
+
+// ── Rendu HTML du résultat ───────────────────────────────────────
+let lastParsed = null;
+
+function runParse() {
+  const raw = document.getElementById('ineo-text').value.trim();
+  if(!raw) { document.getElementById('result').innerHTML='<div class="err">Collez une feuille INEO dans le champ ci-dessus.</div>'; return; }
+
+  const parsed = parseIneoFeuille(raw);
+  lastParsed = parsed;
+  const { depotDepart, depotRetour, trips, log } = parsed;
+  const out = document.getElementById('result');
+
+  if(!trips.length) {
+    out.innerHTML='<div class="err">❌ Aucun trajet détecté. Vérifiez le format de la feuille.</div>'
+      + `<div class="debug-raw">${log.join('\n')}</div>`;
+    return;
+  }
+
+  // Numéro de service auto-détecté (premier svcNum trouvé)
+  const autoNum = trips.find(t=>t.svcNum)?.svcNum || '';
+
+  let html = `<div class="save-bar">
+    <span style="font-size:13px;font-weight:700;color:var(--green)">💾 Enregistrer</span>
+    <input type="text" id="save-num" placeholder="N° service" value="${autoNum}" style="width:110px">
+    <select id="save-jour">
+      <option value="semaine">📅 Semaine</option>
+      <option value="samedi">📅 Samedi</option>
+      <option value="dimanche">📅 Dimanche</option>
+    </select>
+    <button class="btn btn-sm btn-nouveau" onclick="saveService(lastParsed)" style="margin-top:0">💾 Enregistrer</button>
+  </div>`;
+
+  html += `<div class="info-bar">
+    <b>✅ ${trips.length} trajet(s) détecté(s)</b>
+    ${depotDepart ? `&nbsp;·&nbsp; 🏭 Prise : <b>${depotDepart}</b>` : ''}
+    ${depotRetour ? `&nbsp;·&nbsp; 🏭 Fin : <b>${depotRetour}</b>` : ''}
+    <br><span style="font-size:11px;color:var(--muted)">🔴 = poteau INEO (régulation) · autres = interpolés</span>
+  </div>`;
+
+  // renderEditableTrip pour avoir 🗑 et champs horaires sur chaque arrêt
+  trips.forEach((t, ti) => {
+    html += renderEditableTrip(t, ti, false);
+  });
+
+  html += `<button class="toggle-debug" onclick="this.nextSibling.style.display=this.nextSibling.style.display==='none'?'block':'none'">🔍 Log de parsing</button>
+    <div class="debug-raw" style="display:none">${log.join('\n')}</div>`;
+
+  out.innerHTML = html;
+  // Afficher le bouton + Trajet
+  const btnAdd = document.getElementById('btn-add-manual');
+  if(btnAdd) btnAdd.style.display = 'inline-flex';
+}
+
+// ── Déplacer / supprimer un trajet entier ───────────────────────
+function moveTrip(ti, dir) {
+  if(!lastParsed) return;
+  const trips = lastParsed.trips;
+  const newIdx = ti + dir;
+  if(newIdx < 0 || newIdx >= trips.length) return;
+  // Swap
+  [trips[ti], trips[newIdx]] = [trips[newIdx], trips[ti]];
+  reRenderAllTrips();
+}
+
+function deleteTrip(ti) {
+  if(!lastParsed) return;
+  lastParsed.trips.splice(ti, 1);
+  reRenderAllTrips();
+}
+
+function reRenderAllTrips() {
+  if(!lastParsed) return;
+  // Re-render only the trips section inside #result
+  const out = document.getElementById('result');
+  // Find the save-bar and info-bar (keep them), replace trip cards
+  const saveBar = out.querySelector('.save-bar');
+  const infoBar = out.querySelector('.info-bar');
+  const debugBtn = out.querySelector('.toggle-debug');
+  const debugDiv = debugBtn ? debugBtn.nextSibling : null;
+
+  let html = '';
+  lastParsed.trips.forEach((t, ti) => {
+    html += renderEditableTrip(t, ti, false);
+  });
+
+  // Remove old trip cards
+  out.querySelectorAll('.trip-card').forEach(el => el.remove());
+  // Remove old debug button
+  if(debugBtn) debugBtn.remove();
+  if(debugDiv) debugDiv.remove();
+
+  // Insert new trip cards before end of #result
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  while(tmp.firstChild) out.appendChild(tmp.firstChild);
+
+  // Update trip count in info bar
+  if(infoBar) {
+    const b = infoBar.querySelector('b');
+    if(b) b.textContent = `✅ ${lastParsed.trips.length} trajet(s) détecté(s)`;
+  }
+  toast(`${lastParsed.trips.length} trajet(s)`);
+}
+
+// ── Rendu d'un trajet éditable ───────────────────────────────────
+function renderEditableTrip(t, ti, inEditor) {
+  const nbRef = t.stops ? t.stops.filter(s=>s.isRef).length : 0;
+  let h = `<div class="trip-card" id="trip-card-${ti}">
+    <div class="editor-header">
+      <span class="badge" style="background:${t.lineColor||'#555'}">${t.lineNum}</span>
+      <span class="trip-label">${(t.label||'').replace(/^Ligne \S+ — /,'')}</span>
+      ${!inEditor && t.svcNum ? `<span style="font-size:11px;color:var(--muted)">Svc ${t.svcNum}</span>` : ''}
+      <span style="font-size:11px;color:var(--muted)">${t.stops?t.stops.length:0} arrêts${nbRef ? ' · '+nbRef+' reg.' : ''}</span>
+      <div class="trip-actions">
+        <button class="trip-btn" onclick="moveTrip(${ti},-1)" title="Monter">▲</button>
+        <button class="trip-btn" onclick="moveTrip(${ti},1)" title="Descendre">▼</button>
+        <button class="trip-btn trip-btn-del" onclick="deleteTrip(${ti})" title="Supprimer ce trajet">✕</button>
+      </div>
+    </div>
+    ${t.tripLabel ? `<div style="font-size:11px;color:var(--muted);margin-bottom:8px">↳ <i>${t.tripLabel}</i></div>` : ''}
+    ${t.warn ? `<div class="warn">⚠️ ${t.warn}</div>` : ''}
+    <div id="stops-${ti}">`;
+
+  (t.stops||[]).forEach((s, si) => {
+    h += `<div class="editor-stop" id="stop-${ti}-${si}">
+      <input type="time" value="${s.time||''}" onchange="updateStopTime(${ti},${si},this.value)" style="${s.isRef?'border-color:var(--red)':''}">
+      <span class="editor-stop-name ${s.isRef?'is-ref':''}">${s.isRef?'🔴 ':''}${s.name}</span>
+      <span class="editor-stop-ineo">${s.ineo?'#'+s.ineo:''}</span>
+      <button class="editor-stop-del" onclick="deleteStop(${ti},${si})" title="Supprimer cet arrêt">🗑</button>
+    </div>`;
+  });
+
+  h += `</div></div>`;
+  return h;
+}
+
+// Modifier l'heure d'un arrêt dans lastParsed
+function updateStopTime(ti, si, val) {
+  if(!lastParsed || !lastParsed.trips[ti]) return;
+  lastParsed.trips[ti].stops[si].time = val;
+  // Recalcule intervalAfter
+  const stops = lastParsed.trips[ti].stops;
+  stops.forEach((s,i) => {
+    if(i < stops.length-1 && s.time && stops[i+1].time) {
+      const [hA,mA] = s.time.split(':').map(Number);
+      const [hB,mB] = stops[i+1].time.split(':').map(Number);
+      let diff = (hB*60+mB)-(hA*60+mA);
+      if(diff<0) diff+=1440;
+      s.intervalAfter = Math.max(1, diff);
+    }
+  });
+}
+
+// Supprimer un arrêt
+function deleteStop(ti, si) {
+  if(!lastParsed || !lastParsed.trips[ti]) return;
+  lastParsed.trips[ti].stops.splice(si,1);
+  // Re-render juste ce trip-card
+  const card = document.getElementById('trip-card-'+ti);
+  if(card) {
+    const newCard = document.createElement('div');
+    newCard.innerHTML = renderEditableTrip(lastParsed.trips[ti], ti, false);
+    card.replaceWith(newCard.firstElementChild);
+  }
+}
+
+// ── Éditer un service enregistré ─────────────────────────────────
+function editSvc(idx) {
+  const svcs = loadServices();
+  const s = svcs[idx];
+  if(!s) return;
+
+  // Charger dans lastParsed
+  lastParsed = {
+    depotDepart: s.depotDepart||'',
+    depotRetour: s.depotRetour||'',
+    trips: s.trips.map(t => ({...t, stops: t.stops.map(st=>({...st}))}))
+  };
+
+  // Afficher le panneau d'édition
+  const out = document.getElementById('result');
+  const autoNum = s.num || '';
+  const autoJour = s.jour || 'semaine';
+
+  let html = `<div class="save-bar">
+    <span style="font-size:13px;font-weight:700;color:var(--green)">✏️ Modifier Svc ${s.num}</span>
+    <input type="text" id="save-num" value="${autoNum}" style="width:110px">
+    <select id="save-jour">
+      <option value="semaine" ${autoJour==='semaine'?'selected':''}>📅 Semaine</option>
+      <option value="samedi" ${autoJour==='samedi'?'selected':''}>📅 Samedi</option>
+      <option value="dimanche" ${autoJour==='dimanche'?'selected':''}>📅 Dimanche</option>
+    </select>
+    <button class="btn btn-sm btn-nouveau" onclick="saveService(lastParsed)" style="margin-top:0">💾 Enregistrer</button>
+    <button class="btn btn-sm" onclick="renderSvcList();document.getElementById('result').innerHTML=''" style="margin-top:0;border-color:var(--red);color:var(--red)">✕ Annuler</button>
+  </div>`;
+
+  lastParsed.trips.forEach((t, ti) => {
+    html += renderEditableTrip(t, ti, true);
+  });
+
+  out.innerHTML = html;
+  document.getElementById('parse-panel').style.display = 'none';
+  out.scrollIntoView({ behavior:'smooth' });
+}
+
+// ── Init ──────────────────────────────────────────────────────────
+renderSvcList();
+
+// ════════════════════════════════════════════════════════════════
+//  ONGLETS
+// ════════════════════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  const idx = {francilite:0, parseur:1}[name];
+  document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+}
+
+// ════════════════════════════════════════════════════════════════
+//  PARSEUR FRANCILITÉ
+// ════════════════════════════════════════════════════════════════
+
+// Stockage temporaire des trajets de la journée
+let _fcTrips = [];
+
+function fcParseFrancilite(text) {
+  // Format : HH:MM > NOM ARRÊT - INEO [ABREV] ou [ABREV]/Regul X mn
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.match(/^\d{2}:\d{2}\s*>/));
+  if(!lines.length) return null;
+
+  const stops = [];
+  for(const line of lines) {
+    // Ex: 17:45 > GARE DE PONTOISE CANROBERT - 279 [GARE DE PONT]
+    const m = line.match(/^(\d{2}:\d{2})\s*>\s*(.+?)\s*-\s*(\d+)\s*\[([^\]]+)\]/);
+    if(!m) continue;
+    const [, time, name, ineo, abrev] = m;
+    // Capitaliser le nom
+    const nameCap = name.split(' ').map(w => w.charAt(0)+w.slice(1).toLowerCase()).join(' ');
+    stops.push({ time, name: nameCap, ineo, abrev });
+  }
+  if(!stops.length) return null;
+
+  // Détecter la ligne depuis le texte (cherche un numéro 1201-1242)
+  let lineMatch = text.match(/\b(12\d{2})\b/);
+  let lineNum = lineMatch ? lineMatch[1] : null;
+
+  // Si pas trouvé dans le texte → chercher par correspondance d'arrêts dans PRELOADED_TRIPS
+  if(!lineNum && stops.length >= 2) {
+    const firstIneo = stops[0].ineo;
+    const lastIneo = stops[stops.length-1].ineo;
+    let bestLine = null, bestScore = 0;
+    Object.entries(PRELOADED_TRIPS).forEach(([num, trips]) => {
+      trips.forEach(trip => {
+        const tripIneos = trip.stops.map(s => s.ineo);
+        // Compter les correspondances INEO
+        let matches = 0;
+        stops.forEach(s => { if(tripIneos.includes(s.ineo)) matches++; });
+        const score = matches / Math.max(stops.length, 1);
+        if(score > bestScore && score > 0.4) {
+          bestScore = score;
+          bestLine = num;
+        }
+      });
+    });
+    if(bestLine) lineNum = bestLine;
+  }
+  const lineInfo = lineNum ? REAL_LINES.find(l => l.num === lineNum) : null;
+
+  // Calculer les intervalles
+  const stopsWithInterval = stops.map((s, i) => {
+    if(i === stops.length - 1) return { ...s, intervalAfter: 0 };
+    const [h1, m1] = s.time.split(':').map(Number);
+    const [h2, m2] = stops[i+1].time.split(':').map(Number);
+    const diff = (h2*60+m2) - (h1*60+m1);
+    return { ...s, intervalAfter: diff > 0 ? diff : 1 };
+  });
+
+  const depart = stops[0];
+  const arrivee = stops[stops.length-1];
+  const label = lineNum
+    ? `${lineNum} — ${depart.name} → ${arrivee.name}`
+    : `${depart.name} → ${arrivee.name}`;
+
+  return {
+    lineNum,
+    lineColor: lineInfo ? lineInfo.color : '#888',
+    label,
+    depart: depart.time,
+    arrivee: arrivee.time,
+    stops: stopsWithInterval
+  };
+}
+
+function fcAddTrip() {
+  const text = document.getElementById('fc-itin-text').value.trim();
+  const status = document.getElementById('fc-add-status');
+  status.style.display = 'block';
+
+  if(!text) {
+    status.style.cssText += ';background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);color:var(--red)';
+    status.textContent = '⚠️ Colle le texte de l\'itinéraire Francilité';
+    return;
+  }
+
+  const trip = fcParseFrancilite(text);
+  if(!trip) {
+    status.style.cssText += ';background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);color:var(--red)';
+    status.textContent = '❌ Format non reconnu — vérifie que tu as bien copié la page Itinéraire';
+    return;
+  }
+
+  _fcTrips.push(trip);
+  document.getElementById('fc-itin-text').value = '';
+  status.style.cssText = 'display:block;background:rgba(39,174,96,.1);border:1px solid rgba(39,174,96,.3);color:var(--green)';
+  status.textContent = `✅ Trajet ajouté : ${trip.label} (${trip.stops.length} arrêts)`;
+
+  fcRenderTripsList();
+  setTimeout(() => { status.style.display='none'; }, 3000);
+}
+
+function fcRenderTripsList() {
+  const list = document.getElementById('fc-trips-list');
+  const badge = document.getElementById('fc-trips-badge');
+  const btn = document.getElementById('fc-create-btn');
+  badge.textContent = _fcTrips.length;
+  btn.style.display = _fcTrips.length ? 'block' : 'none';
+
+  if(!_fcTrips.length) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:12px">Aucun trajet ajouté</div>';
+    return;
+  }
+
+  list.innerHTML = _fcTrips.map((t, ti) => `
+    <div style="border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden">
+
+      <!-- En-tête trajet -->
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.04);cursor:pointer" onclick="fcToggleTrip(${ti})">
+        <span style="background:${t.lineColor};color:#fff;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;flex-shrink:0">${t.lineNum||'?'}</span>
+        <span style="flex:1;font-size:12px;font-weight:700">${t.label}</span>
+        <span style="font-size:11px;color:var(--accent)">${t.depart}→${t.arrivee}</span>
+        <span style="font-size:11px;color:var(--muted)">${t.stops.length} arrêts</span>
+        <span id="fc-arrow-${ti}" style="color:var(--muted);font-size:12px">▼</span>
+        <button onclick="event.stopPropagation();fcMoveTrip(${ti},-1)" ${ti===0?'disabled':''} style="background:transparent;border:none;color:${ti===0?'var(--muted)':'var(--accent)'};cursor:pointer;font-size:16px;padding:0 2px" title="Monter">▲</button>
+        <button onclick="event.stopPropagation();fcMoveTrip(${ti},1)" ${ti===_fcTrips.length-1?'disabled':''} style="background:transparent;border:none;color:${ti===_fcTrips.length-1?'var(--muted)':'var(--accent)'};cursor:pointer;font-size:16px;padding:0 2px" title="Descendre">▼</button>
+        <button onclick="event.stopPropagation();fcRemoveTrip(${ti})" style="background:transparent;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:0 4px">✕</button>
+      </div>
+
+      <!-- Liste des arrêts (expandable) -->
+      <div id="fc-stops-${ti}" style="display:none;padding:8px 12px">
+
+        <!-- Arrêts existants -->
+        <div id="fc-stops-list-${ti}">
+          ${t.stops.map((s, si) => `
+            <div id="fc-stop-${ti}-${si}" style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+              <span style="font-family:monospace;font-size:12px;font-weight:700;color:var(--accent);width:45px;flex-shrink:0">${s.time}</span>
+              <span style="flex:1;font-size:12px">${s.name}</span>
+              <span style="font-size:10px;color:var(--muted);width:40px">#${s.ineo}</span>
+              <button onclick="fcRemoveStop(${ti},${si})" style="background:transparent;border:none;color:var(--red);cursor:pointer;font-size:13px;padding:0">✕</button>
+            </div>`).join('')}
+        </div>
+
+        <!-- Ajouter un arrêt -->
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:6px">+ Ajouter un arrêt</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <input type="time" id="fc-new-time-${ti}" style="background:#0d1117;border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 8px;font-size:12px;width:90px">
+            <input type="text" id="fc-new-name-${ti}" placeholder="Nom arrêt" style="background:#0d1117;border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 8px;font-size:12px;flex:1;min-width:120px">
+            <input type="text" id="fc-new-ineo-${ti}" placeholder="Ineo" style="background:#0d1117;border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 8px;font-size:12px;width:60px">
+            <button onclick="fcAddStop(${ti})" style="background:var(--green);border:none;color:#000;font-weight:700;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px">✅</button>
+          </div>
+        </div>
+
+      </div>
+    </div>`).join('');
+}
+
+function fcToggleTrip(ti) {
+  const el = document.getElementById(`fc-stops-${ti}`);
+  const arrow = document.getElementById(`fc-arrow-${ti}`);
+  const open = el.style.display === 'none';
+  el.style.display = open ? 'block' : 'none';
+  arrow.textContent = open ? '▲' : '▼';
+}
+
+function fcRemoveStop(ti, si) {
+  _fcTrips[ti].stops.splice(si, 1);
+  // Recalculer arrêt départ/arrivée
+  const t = _fcTrips[ti];
+  if(t.stops.length) {
+    t.depart = t.stops[0].time;
+    t.arrivee = t.stops[t.stops.length-1].time;
+    t.label = `${t.lineNum ? t.lineNum+' — ' : ''}${t.stops[0].name} → ${t.stops[t.stops.length-1].name}`;
+  }
+  fcRenderTripsList();
+  // Ré-ouvrir le trajet
+  setTimeout(() => fcToggleTrip(ti), 10);
+}
+
+function fcAddStop(ti) {
+  const time = document.getElementById(`fc-new-time-${ti}`).value;
+  const name = document.getElementById(`fc-new-name-${ti}`).value.trim();
+  const ineo = document.getElementById(`fc-new-ineo-${ti}`).value.trim();
+  if(!time || !name) { toast('⚠️ Heure et nom obligatoires'); return; }
+
+  const t = _fcTrips[ti];
+  // Insérer dans le bon ordre chronologique
+  const newStop = { time, name, ineo: ineo||'0', intervalAfter: 1, isRef: true, refTime: time };
+  t.stops.push(newStop);
+  t.stops.sort((a,b) => a.time.localeCompare(b.time));
+  // Recalculer intervalles
+  t.stops = t.stops.map((s,i) => {
+    if(i===t.stops.length-1) return {...s, intervalAfter:0};
+    const [h1,m1]=s.time.split(':').map(Number);
+    const [h2,m2]=t.stops[i+1].time.split(':').map(Number);
+    const diff=(h2*60+m2)-(h1*60+m1);
+    return {...s, intervalAfter: diff>0?diff:1};
+  });
+  t.depart = t.stops[0].time;
+  t.arrivee = t.stops[t.stops.length-1].time;
+  t.label = `${t.lineNum ? t.lineNum+' — ' : ''}${t.stops[0].name} → ${t.stops[t.stops.length-1].name}`;
+
+  fcRenderTripsList();
+  setTimeout(() => fcToggleTrip(ti), 10);
+  toast(`✅ Arrêt ${name} ajouté`);
+}
+
+function fcMoveTrip(ti, dir) {
+  const newIdx = ti + dir;
+  if(newIdx < 0 || newIdx >= _fcTrips.length) return;
+  const tmp = _fcTrips[ti];
+  _fcTrips[ti] = _fcTrips[newIdx];
+  _fcTrips[newIdx] = tmp;
+  fcRenderTripsList();
+}
+
+function fcRemoveTrip(i) {
+  _fcTrips.splice(i, 1);
+  fcRenderTripsList();
+}
+
+function fcCreateFeuille() {
+  const num = document.getElementById('fc-svc-num').value.trim();
+  const jour = document.getElementById('fc-svc-jour').value;
+
+  if(!num) {
+    toast('⚠️ Entre le numéro de service (ex: 112)');
+    return;
+  }
+  if(!_fcTrips.length) {
+    toast('⚠️ Ajoute au moins un trajet');
+    return;
+  }
+
+  // Trier les trajets par heure de départ
+  _fcTrips.sort((a, b) => a.depart.localeCompare(b.depart));
+
+  // Calculer heures dépôt
+  const depotDepart = _fcTrips[0].depart;
+  const depotRetour = _fcTrips[_fcTrips.length-1].arrivee;
+  const [hD, mD] = depotDepart.split(':').map(Number);
+  const [hR, mR] = depotRetour.split(':').map(Number);
+  let diff = (hR*60+mR)-(hD*60+mD); if(diff<0) diff+=1440;
+  const heures = diff/60;
+
+  // Construire le service
+  const svc = {
+    num,
+    jour,
+    depotDepart,
+    depotRetour,
+    heures,
+    trips: _fcTrips.map(t => ({
+      lineNum: t.lineNum || '?',
+      lineColor: t.lineColor,
+      label: t.label,
+      stops: t.stops.map(s => ({
+        name: s.name,
+        ineo: s.ineo,
+        time: s.time,
+        intervalAfter: s.intervalAfter,
+        isRef: true,
+        refTime: s.time
+      }))
+    }))
+  };
+
+  // Sauvegarder
+  const svcs = loadServices();
+  const idx = svcs.findIndex(s => s.num === num && s.jour === jour);
+  if(idx === -1) svcs.push(svc); else svcs[idx] = svc;
+  svcs.sort((a,b) => (parseInt(a.num)||0)-(parseInt(b.num)||0));
+  saveServices(svcs);
+
+  // Reset
+  _fcTrips = [];
+  fcRenderTripsList();
+  document.getElementById('fc-svc-num').value = '';
+
+  // Aller au parseur pour voir le résultat
+  _svcFilter = jour;
+  renderSvcList();
+  switchTab('parseur');
+  toast(`✅ Service ${num} créé avec ${svc.trips.length} trajet(s) !`);
+}
+
+// Init
+renderSvcList();
+
+// ══════════════════════════════════════════════════════
+// RÉCEPTION IMPORT BOOKMARKLET
+// ══════════════════════════════════════════════════════
+(function fsoCheckImport() {
+  var fsoReceived = false;
+  window.addEventListener('message', function(event) {
+    if (!event.data || event.data.type !== 'fso_import') return;
+    if (fsoReceived) {
+      // Confirmer mais ignorer
+      if (event.source) try { event.source.postMessage({type:'fso_ack'},'*'); } catch(e){}
+      return;
+    }
+    fsoReceived = true;
+    try {
+      var data = JSON.parse(event.data.data);
+      if (!data.trajets || !data.trajets.length) return;
+      if (Date.now() - data.ts > 5 * 60 * 1000) return;
+      // Vider les anciens trajets
+      _fcTrips = [];
+      var imported = fsoInjectTrajets(data.trajets);
+      if (imported > 0) {
+        fcRenderTripsList();
+        switchTab('francilite');
+        setTimeout(function() { toast(imported + ' trajet(s) importes depuis FSO !'); }, 300);
+      }
+      // Confirmer reception au bookmarklet
+      if (event.source) try { event.source.postMessage({type:'fso_ack'},'*'); } catch(e){}
+    } catch(e) { console.error('postMessage error:', e); }
+  });
+})();
+
+function fsoInjectTrajets(trajets) {
+  var imported = 0;
+  for (var i = 0; i < trajets.length; i++) {
+    var t = trajets[i];
+    if (!t.arrets || t.arrets.length < 2) continue;
+    var lineNum = t.ligne || fsoDetectLine(t.arrets);
+    var lineInfo = REAL_LINES.find(function(l) { return l.num === lineNum; });
+    var stops = t.arrets.map(function(a, idx) {
+      return {
+        name: a.nom, ineo: a.code || '0', time: a.heure,
+        intervalAfter: idx < t.arrets.length - 1 ? fsoCalcInterval(a.heure, t.arrets[idx+1].heure) : 0,
+        isRef: true, refTime: a.heure
+      };
+    });
+    var dep = stops[0]; var arr = stops[stops.length - 1];
+    _fcTrips.push({
+      lineNum: lineNum || '?', lineColor: lineInfo ? lineInfo.color : '#6b7280',
+      label: (lineNum || '?') + ' - ' + dep.name + ' > ' + arr.name,
+      depart: dep.time, arrivee: arr.time, stops: stops
+    });
+    imported++;
+  }
+  return imported;
+}
+
+
+// ══════════════════════════════════════════════════════
+// FSO AUTO IMPORT
+// ══════════════════════════════════════════════════════
+const FSO_PROXY = 'https://fso-proxy.onrender.com';
+
+function fsoDateToday() {
+  const d = new Date();
+  document.getElementById('fso-date').value = d.toISOString().split('T')[0];
+}
+
+function fsoDateNext() {
+  const el = document.getElementById('fso-date');
+  const d = el.value ? new Date(el.value + 'T12:00:00') : new Date();
+  d.setDate(d.getDate() + 1);
+  el.value = d.toISOString().split('T')[0];
+}
+
+function fsoToggleRemember() {
+  const remember = document.getElementById('fso-remember').checked;
+  if (!remember) {
+    localStorage.removeItem('fso_user');
+    localStorage.removeItem('fso_pass');
+  } else {
+    const u = document.getElementById('fso-user').value;
+    const p = document.getElementById('fso-pass').value;
+    if (u) localStorage.setItem('fso_user', u);
+    if (p) localStorage.setItem('fso_pass', p);
+  }
+}
+
+function fsoLog(msg) {
+  const el = document.getElementById('fso-log');
+  el.style.display = 'block';
+  el.innerHTML += msg + '\n';
+  el.scrollTop = el.scrollHeight;
+}
+
+function fsoStatus(msg, type) {
+  const el = document.getElementById('fso-status');
+  el.textContent = msg;
+  el.className = 'fso-status ' + type;
+  el.style.display = 'block';
+}
+
+(function fsoInit() {
+  const u = localStorage.getItem('fso_user');
+  const p = localStorage.getItem('fso_pass');
+  if (u) { document.getElementById('fso-user').value = u; document.getElementById('fso-remember').checked = true; }
+  if (p) { document.getElementById('fso-pass').value = p; }
+  fsoDateToday();
+})();
+
+async function fsoImport() {
+  const username = document.getElementById('fso-user').value.trim();
+  const password = document.getElementById('fso-pass').value;
+  const dateVal  = document.getElementById('fso-date').value;
+
+  if (!username || !password) { fsoStatus('Entrez matricule et mot de passe', 'error'); return; }
+  if (!dateVal) { fsoStatus('Selectionnez une date', 'error'); return; }
+
+  if (document.getElementById('fso-remember').checked) {
+    localStorage.setItem('fso_user', username);
+    localStorage.setItem('fso_pass', password);
+  }
+
+  const btn = document.getElementById('fso-btn');
+  btn.disabled = true;
+  btn.innerHTML = 'Connexion FSO en cours...';
+  document.getElementById('fso-log').innerHTML = '';
+  document.getElementById('fso-log').style.display = 'none';
+
+  const [y, m, d] = dateVal.split('-');
+  const dateFSO = d + '/' + m + '/' + y;
+
+  fsoStatus('Connexion au serveur proxy...', 'loading');
+
+  try {
+    fsoLog('Connexion a abcplanning...');
+    btn.innerHTML = 'Recuperation des trajets...';
+
+    const resp = await fetch(FSO_PROXY + '/api/service', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, date: dateFSO })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: 'Erreur serveur' }));
+      throw new Error(err.error || 'Erreur ' + resp.status);
+    }
+
+    const data = await resp.json();
+    fsoLog(data.trajets.length + ' trajet(s) recupere(s)');
+
+    if (!data.trajets.length) {
+      fsoStatus('Aucun trajet trouve pour cette date', 'error');
+      btn.disabled = false;
+      btn.innerHTML = 'Recuperer mon service FSO';
+      return;
+    }
+
+    let imported = 0;
+    for (const t of data.trajets) {
+      if (!t.arrets || t.arrets.length < 2) continue;
+
+      const lineNum = t.ligne || fsoDetectLine(t.arrets);
+      const lineInfo = REAL_LINES.find(l => l.num === lineNum);
+
+      const stops = t.arrets.map(function(a, i) {
+        return {
+          name: a.nom,
+          ineo: a.code || '0',
+          time: a.heure,
+          intervalAfter: i < t.arrets.length - 1 ? fsoCalcInterval(a.heure, t.arrets[i+1].heure) : 0,
+          isRef: true,
+          refTime: a.heure
+        };
+      });
+
+      const dep = stops[0];
+      const arr = stops[stops.length - 1];
+
+      _fcTrips.push({
+        lineNum: lineNum || '?',
+        lineColor: lineInfo ? lineInfo.color : '#6b7280',
+        label: (lineNum || '?') + ' - ' + dep.name + ' > ' + arr.name,
+        depart: dep.time,
+        arrivee: arr.time,
+        stops: stops
+      });
+      imported++;
+      fsoLog('  OK ' + (lineNum || '?') + ' : ' + dep.time + ' ' + dep.name + ' > ' + arr.time + ' ' + arr.name);
+    }
+
+    fcRenderTripsList();
+    fsoStatus(imported + ' trajet(s) importes ! Verifiez la liste ci-dessous.', 'success');
+    toast(imported + ' trajet(s) FSO importes !');
+
+  } catch (err) {
+    console.error(err);
+    fsoStatus('Erreur: ' + err.message, 'error');
+    fsoLog('Erreur: ' + err.message);
+    if (err.message.includes('fetch') || err.message.includes('Network')) {
+      fsoLog('Le proxy Render est peut-etre en veille (50s au demarrage). Reessayez dans 1 minute.');
+    }
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Recuperer mon service FSO';
+  }
+}
+
+function fsoCalcInterval(t1, t2) {
+  try {
+    const p1 = t1.split(':').map(Number);
+    const p2 = t2.split(':').map(Number);
+    const diff = (p2[0] * 60 + p2[1]) - (p1[0] * 60 + p1[1]);
+    return diff > 0 ? diff : 1;
+  } catch(e) { return 1; }
+}
+
+function fsoDetectLine(arrets) {
+  for (const line of REAL_LINES) {
+    const trips = PRELOADED_TRIPS[line.num];
+    if (!trips) continue;
+    for (const trip of trips) {
+      const knownNames = trip.stops.map(function(s) { return s.name.toLowerCase(); });
+      const matchCount = arrets.filter(function(a) {
+        return knownNames.some(function(n) { return n.includes(a.nom.toLowerCase().slice(0, 8)); });
+      }).length;
+      if (matchCount >= Math.min(3, arrets.length * 0.5)) return line.num;
+    }
+  }
+  return null;
+}
+
+</script>
+</body>
+</html>
