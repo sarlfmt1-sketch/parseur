@@ -190,6 +190,8 @@ Ex:
       <button class="btn btn-sm btn-nouveau" onclick="showParsePanel()">+ Nouveau</button>
       <button class="btn btn-sm" id="btn-add-manual" onclick="toggleAddPanel()" style="background:rgba(39,174,96,.15);border-color:rgba(39,174,96,.5);color:#27ae60;display:none">+ Trajet</button>
       <button class="btn btn-sm btn-export" onclick="exportJSON()" title="Exporter JSON">⬇ JSON</button>
+      <button class="btn btn-sm" onclick="syncToChronoligne()" title="Envoyer vers ChronoLigne ouvert" style="background:rgba(39,174,96,.15);border-color:var(--green);color:var(--green)">📡 Sync</button>
+      <button class="btn btn-sm" onclick="exportAlertes()" title="Exporter alertes trajets courts" style="background:rgba(231,76,60,.15);border-color:var(--red);color:var(--red)">⚠️ Alertes</button>
       <button class="btn btn-sm btn-json" onclick="document.getElementById('import-file-parseur').click()" title="Importer JSON">📂 JSON</button>
       <input type="file" id="import-file-parseur" accept=".json" style="display:none" onchange="importJSON(event)">
       <span id="svc-count" style="font-size:12px;color:var(--muted);margin-left:auto"></span>
@@ -2224,6 +2226,28 @@ function loadServices() {
 }
 function saveServices(svcs) {
   localStorage.setItem(ROADMAP_KEY, JSON.stringify(svcs));
+  // Sync automatique vers ChronoLigne si ouvert
+  broadcastSync(svcs);
+}
+
+// ── BroadcastChannel — sync temps réel vers ChronoLigne ─────────
+const _clChannel = new BroadcastChannel('chronoligne_sync');
+
+function broadcastSync(svcs) {
+  try {
+    _clChannel.postMessage({ type: 'SYNC_SERVICES', svcs });
+  } catch(e) {}
+}
+
+function syncToChronoligne() {
+  const svcs = loadServices();
+  if(!svcs.length) { toast('Aucun service à envoyer'); return; }
+  try {
+    _clChannel.postMessage({ type: 'SYNC_SERVICES', svcs });
+    toast(`📡 ${svcs.length} service(s) envoyé(s) vers ChronoLigne`);
+  } catch(e) {
+    toast('❌ Erreur sync — ChronoLigne ouvert ?');
+  }
 }
 
 // ── Export JSON (compatible Chronoligne) ────────────────────────
@@ -2241,6 +2265,93 @@ function exportJSON() {
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   toast(`✅ ${svcs.length} service(s) exporté(s)`);
+}
+
+// ── Export Alertes trajets courts ────────────────────────────────
+function exportAlertes() {
+  // Collecter toutes les alertes depuis tous les services chargés
+  const svcs = loadServices();
+  const alertes = [];
+
+  svcs.forEach(svc => {
+    if(!svc.trips || !svc.trips.length) return;
+
+    // Calculer la durée de chaque trajet
+    const tripsWithDuree = svc.trips.map(t => {
+      const first = t.stops?.[0];
+      const last  = t.stops?.[t.stops.length - 1];
+      if(!first?.time || !last?.time) return { ...t, duree: 0 };
+      const [h1,m1] = first.time.split(':').map(Number);
+      const [h2,m2] = last.time.split(':').map(Number);
+      let d = (h2*60+m2) - (h1*60+m1);
+      if(d < 0) d += 1440;
+      return { ...t, duree: d };
+    });
+
+    // Pour chaque trajet, trouver les similaires (même ligne, même 1er arrêt)
+    tripsWithDuree.forEach((t, ti) => {
+      if(!t.duree) return;
+      const similaires = tripsWithDuree.filter((other, i) => {
+        if(i === ti) return false;
+        if(other.lineNum !== t.lineNum) return false;
+        const dep1 = (t.stops?.[0]?.name || '').substring(0,5).toLowerCase();
+        const dep2 = (other.stops?.[0]?.name || '').substring(0,5).toLowerCase();
+        return dep1 === dep2;
+      });
+      if(!similaires.length) return;
+      const max = Math.max(...similaires.map(s => s.duree));
+      const ecart = max - t.duree;
+      if(ecart < 5) return; // Seuil : seulement si ≥5min de différence
+
+      const first = t.stops?.[0];
+      const last  = t.stops?.[t.stops.length - 1];
+      alertes.push({
+        ligne:                 t.lineNum || '?',
+        service:               svc.num || '?',
+        trajet:                (t.label || '').replace(/^Ligne \S+ — /,''),
+        heure_depart:          first?.time || '',
+        heure_arrivee:         last?.time  || '',
+        duree_minutes:         t.duree,
+        duree_normale_minutes: max,
+        ecart_minutes:         ecart,
+        message:               `Trajet court — ${t.duree}min au lieu de ${max}min (-${ecart}min)`
+      });
+    });
+  });
+
+  // Inclure aussi les trajets du panneau Francilité si présents
+  if(typeof _fcTrips !== 'undefined' && _fcTrips.length) {
+    _fcTrips.forEach((t, ti) => {
+      const duree = fcCalcDuree(t);
+      const alerte = fcAlerteDuree(t, ti);
+      if(!alerte || alerte.ecart < 5) return;
+      alertes.push({
+        ligne:                 t.lineNum || '?',
+        service:               t.svcNum  || '?',
+        trajet:                (t.label  || '').replace(/^Ligne \S+ — /,''),
+        heure_depart:          t.depart  || '',
+        heure_arrivee:         t.arrivee || '',
+        duree_minutes:         alerte.duree,
+        duree_normale_minutes: alerte.max,
+        ecart_minutes:         alerte.ecart,
+        message:               `Trajet court — ${alerte.duree}min au lieu de ${alerte.max}min (-${alerte.ecart}min)`
+      });
+    });
+  }
+
+  if(!alertes.length) { toast('✅ Aucun trajet court détecté (seuil : 5min)'); return; }
+
+  const json = JSON.stringify({ alertes }, null, 2);
+  const blob = new Blob([json], { type:'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `alertes_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast(`⚠️ ${alertes.length} alerte(s) exportée(s)`);
 }
 
 // ── Import JSON ──────────────────────────────────────────────────
