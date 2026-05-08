@@ -2674,7 +2674,9 @@ function confirmDeleteSvc(idx, confirmId) {
   const s = svcs[idx];
   if(!s) return;
   svcs.splice(idx,1);
-  saveServices(svcs);
+  // Sauvegarder et notifier ChronoLigne de la suppression
+  localStorage.setItem(ROADMAP_KEY, JSON.stringify(svcs));
+  try { _clChannel.postMessage({ type: 'DELETE_SERVICE', num: s.num, jour: s.jour||'semaine' }); } catch(e) {}
   document.getElementById(confirmId)?.remove();
   renderSvcList();
   toast(`🗑 Service ${s.num} supprimé`);
