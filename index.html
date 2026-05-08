@@ -190,6 +190,7 @@ Ex:
       <button class="btn btn-sm btn-nouveau" onclick="showParsePanel()">+ Nouveau</button>
       <button class="btn btn-sm" id="btn-add-manual" onclick="toggleAddPanel()" style="background:rgba(39,174,96,.15);border-color:rgba(39,174,96,.5);color:#27ae60;display:none">+ Trajet</button>
       <button class="btn btn-sm btn-export" onclick="exportJSON()" title="Exporter JSON">⬇ JSON</button>
+      <button class="btn btn-sm" onclick="driveParseurSignIn()" id="parseur-drive-btn" title="Sync Google Drive" style="background:rgba(66,133,244,.15);border-color:#4285f4;color:#4285f4">☁️ Drive</button>
       <button class="btn btn-sm" onclick="syncToChronoligne()" title="Envoyer vers ChronoLigne ouvert" style="background:rgba(39,174,96,.15);border-color:var(--green);color:var(--green)">📡 Sync</button>
       <button class="btn btn-sm" onclick="exportAlertes()" title="Exporter alertes trajets courts" style="background:rgba(231,76,60,.15);border-color:var(--red);color:var(--red)">⚠️ Alertes</button>
       <button class="btn btn-sm btn-json" onclick="document.getElementById('import-file-parseur').click()" title="Importer JSON">📂 JSON</button>
@@ -2247,6 +2248,68 @@ function syncToChronoligne() {
     toast(`📡 ${svcs.length} service(s) envoyé(s) vers ChronoLigne`);
   } catch(e) {
     toast('❌ Erreur sync — ChronoLigne ouvert ?');
+  }
+}
+
+// ── Google Drive Sync ─────────────────────────
+const DRIVE_CLIENT_ID = '824903623349-bpd4r6r85g0md1neab4oh5bd6h775ell.apps.googleusercontent.com';
+const DRIVE_SCOPE     = 'https://www.googleapis.com/auth/drive.appdata';
+const DRIVE_FILE_NAME = 'chronoligne_sync.json';
+let _parseurDriveToken = null;
+
+function driveParseurSignIn() {
+  const s = document.createElement('script');
+  s.src = 'https://accounts.google.com/gsi/client';
+  s.onload = () => {
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: DRIVE_CLIENT_ID,
+      scope: DRIVE_SCOPE,
+      callback: async (resp) => {
+        if(resp.error) { toast('❌ Connexion Google échouée'); return; }
+        _parseurDriveToken = resp.access_token;
+        const btn = document.getElementById('parseur-drive-btn');
+        if(btn) { btn.textContent = '☁️ Sauver'; btn.style.background = 'rgba(39,174,96,.2)'; btn.style.borderColor = 'var(--green)'; btn.style.color = 'var(--green)'; btn.onclick = driveParseurUpload; }
+        toast('✅ Connecté — clique à nouveau pour sauvegarder');
+      }
+    });
+    client.requestAccessToken();
+  };
+  document.head.appendChild(s);
+}
+
+async function driveParseurGetFileId() {
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${DRIVE_FILE_NAME}'&fields=files(id)`,
+    { headers: { Authorization: 'Bearer ' + _parseurDriveToken } }
+  );
+  const data = await res.json();
+  return data.files?.[0]?.id || null;
+}
+
+async function driveParseurUpload() {
+  if(!_parseurDriveToken) { driveParseurSignIn(); return; }
+  try {
+    const svcs = loadServices();
+    const planning = JSON.parse(localStorage.getItem('chronoligne_planning') || '{}');
+    const payload  = { services: svcs, planning, updatedAt: new Date().toISOString() };
+    const json     = JSON.stringify(payload);
+    const fileId   = await driveParseurGetFileId();
+
+    const url    = fileId
+      ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`
+      : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+    const method = fileId ? 'PATCH' : 'POST';
+
+    const meta = JSON.stringify({ name: DRIVE_FILE_NAME, ...(!fileId && { parents: ['appDataFolder'] }) });
+    const body = new FormData();
+    body.append('metadata', new Blob([meta], { type: 'application/json' }));
+    body.append('file',     new Blob([json], { type: 'application/json' }));
+
+    const res = await fetch(url, { method, headers: { Authorization: 'Bearer ' + _parseurDriveToken }, body });
+    if(res.ok) toast(`☁️ ${svcs.length} service(s) sauvegardé(s) sur Drive`);
+    else toast('❌ Erreur sauvegarde Drive');
+  } catch(e) {
+    toast('❌ ' + e.message);
   }
 }
 
