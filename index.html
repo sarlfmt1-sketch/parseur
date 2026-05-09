@@ -2641,9 +2641,9 @@ function saveService(parsedData) {
   if(!num) { toast('Entrez un numéro de service'); return; }
 
   const toMinSave = (t) => {
-    const time = t.stops?.[0]?.time || '00:00';
+    const time = t.depart || t.stops?.[0]?.time || '00:00';
     const [h, m] = time.split(':').map(Number);
-    return (h < 5 ? h + 24 : h) * 60 + m;
+    return (h < 5 ? h + 24 : h) * 60 + (m || 0);
   };
 
   const svc = {
@@ -2726,9 +2726,10 @@ function runParse() {
   const toMin = (t) => {
     const time = t.depart || t.stops?.[0]?.time || '00:00';
     const [h, m] = time.split(':').map(Number);
-    return (h < 5 ? h + 24 : h) * 60 + m;
+    return (h < 5 ? h + 24 : h) * 60 + (m || 0);
   };
   parsed.trips.sort((a, b) => toMin(a) - toMin(b));
+  lastParsed.trips = parsed.trips; // s'assurer que lastParsed est aussi mis à jour
   const trips = parsed.trips;
 
   const out = document.getElementById('result');
@@ -2893,11 +2894,18 @@ function editSvc(idx) {
   const s = svcs[idx];
   if(!s) return;
 
-  // Charger dans lastParsed
+  // Charger dans lastParsed avec tri correct (après minuit = fin de service)
+  const toMinEdit = (t) => {
+    const time = t.stops?.[0]?.time || '00:00';
+    const [h, m] = time.split(':').map(Number);
+    return (h < 5 ? h + 24 : h) * 60 + (m || 0);
+  };
   lastParsed = {
     depotDepart: s.depotDepart||'',
     depotRetour: s.depotRetour||'',
-    trips: s.trips.map(t => ({...t, stops: t.stops.map(st=>({...st}))}))
+    trips: s.trips
+      .map(t => ({...t, stops: t.stops.map(st=>({...st}))}))
+      .sort((a, b) => toMinEdit(a) - toMinEdit(b))
   };
 
   // Afficher le panneau d'édition
