@@ -2640,17 +2640,25 @@ function saveService(parsedData) {
   const jour = document.getElementById('save-jour').value;
   if(!num) { toast('Entrez un numéro de service'); return; }
 
+  const toMinSave = (t) => {
+    const time = t.stops?.[0]?.time || '00:00';
+    const [h, m] = time.split(':').map(Number);
+    return (h < 5 ? h + 24 : h) * 60 + m;
+  };
+
   const svc = {
     num, jour,
     depotDepart: parsedData.depotDepart || '',
     depotRetour: parsedData.depotRetour || '',
     heures: null,
-    trips: parsedData.trips.map(t => ({
-      lineNum: t.lineNum,
-      lineColor: t.lineColor,
-      label: t.label,
-      stops: t.stops
-    }))
+    trips: [...parsedData.trips]
+      .sort((a, b) => toMinSave(a) - toMinSave(b))
+      .map(t => ({
+        lineNum: t.lineNum,
+        lineColor: t.lineColor,
+        label: t.label,
+        stops: t.stops
+      }))
   };
 
   if(svc.depotDepart && svc.depotRetour) {
@@ -2712,7 +2720,17 @@ function runParse() {
 
   const parsed = parseIneoFeuille(raw);
   lastParsed = parsed;
-  const { depotDepart, depotRetour, trips, log } = parsed;
+  const { depotDepart, depotRetour, log } = parsed;
+
+  // Trier les trajets — heures après minuit (00h-04h) placées en fin de service
+  const toMin = (t) => {
+    const time = t.depart || t.stops?.[0]?.time || '00:00';
+    const [h, m] = time.split(':').map(Number);
+    return (h < 5 ? h + 24 : h) * 60 + m;
+  };
+  parsed.trips.sort((a, b) => toMin(a) - toMin(b));
+  const trips = parsed.trips;
+
   const out = document.getElementById('result');
 
   if(!trips.length) {
