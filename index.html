@@ -228,6 +228,18 @@ Ex:
       <div style="font-size:15px;font-weight:700;color:#00d4ff;text-align:center;flex:1" id="parseur-plan-title">📅 Planning</div>
       <button class="btn btn-sm btn-secondary" onclick="parseurPlanNav(1)" style="font-size:18px;padding:6px 14px">▶</button>
     </div>
+    <!-- Bouton Drive dans le planning -->
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <button id="plan-drive-btn" onclick="driveParseurSignIn()" style="flex:1;background:rgba(66,133,244,.15);border:1px solid #4285f4;color:#4285f4;border-radius:8px;padding:8px;font-weight:700;cursor:pointer;font-size:13px">
+        ☁️ Connexion Drive
+      </button>
+      <button id="plan-drive-save-btn" onclick="driveParseurUpload()" style="flex:1;background:rgba(39,174,96,.15);border:1px solid #27ae60;color:#27ae60;border-radius:8px;padding:8px;font-weight:700;cursor:pointer;font-size:13px;display:none">
+        ⬆️ Sauver sur Drive
+      </button>
+      <button id="plan-drive-load-btn" onclick="driveParseurDownload()" style="flex:1;background:rgba(255,193,7,.1);border:1px solid #ffc107;color:#ffc107;border-radius:8px;padding:8px;font-weight:700;cursor:pointer;font-size:13px;display:none">
+        ⬇️ Charger Drive
+      </button>
+    </div>
     <div id="parseur-planning-container"></div>
   </div>
   <!-- Sélecteur service -->
@@ -2284,9 +2296,17 @@ function driveParseurSignIn() {
       callback: async (resp) => {
         if(resp.error) { toast('❌ Connexion Google échouée'); return; }
         _parseurDriveToken = resp.access_token;
+        // Bouton toolbar
         const btn = document.getElementById('parseur-drive-btn');
         if(btn) { btn.textContent = '☁️ Sauver'; btn.style.background = 'rgba(39,174,96,.2)'; btn.style.borderColor = 'var(--green)'; btn.style.color = 'var(--green)'; btn.onclick = driveParseurUpload; }
-        toast('✅ Connecté — clique à nouveau pour sauvegarder');
+        // Boutons planning
+        const planConn = document.getElementById('plan-drive-btn');
+        const planSave = document.getElementById('plan-drive-save-btn');
+        const planLoad = document.getElementById('plan-drive-load-btn');
+        if(planConn) planConn.style.display = 'none';
+        if(planSave) planSave.style.display = '';
+        if(planLoad) planLoad.style.display = '';
+        toast('✅ Connecté à Google Drive');
       }
     });
     client.requestAccessToken();
@@ -2301,6 +2321,36 @@ async function driveParseurGetFileId() {
   );
   const data = await res.json();
   return data.files?.[0]?.id || null;
+}
+
+async function driveParseurDownload() {
+  if(!_parseurDriveToken) { driveParseurSignIn(); return; }
+  try {
+    const fileId = await driveParseurGetFileId();
+    if(!fileId) { toast('⚠️ Aucun fichier trouvé sur Drive'); return; }
+    const res  = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      { headers: { Authorization: 'Bearer ' + _parseurDriveToken } }
+    );
+    const data = await res.json();
+    if(data.services?.length) {
+      let existing = JSON.parse(localStorage.getItem(ROADMAP_KEY)||'[]');
+      let added=0, updated=0;
+      data.services.forEach(s => {
+        const idx = existing.findIndex(r => r.num===s.num && r.jour===s.jour);
+        if(idx===-1) { existing.push(s); added++; } else { existing[idx]=s; updated++; }
+      });
+      localStorage.setItem(ROADMAP_KEY, JSON.stringify(existing));
+    }
+    if(data.planning && Object.keys(data.planning).length) {
+      let p = JSON.parse(localStorage.getItem(PARSEUR_PLANNING_KEY)||'{}');
+      Object.assign(p, data.planning);
+      localStorage.setItem(PARSEUR_PLANNING_KEY, JSON.stringify(p));
+    }
+    parseurRenderPlanning();
+    const ts = data.updatedAt ? new Date(data.updatedAt).toLocaleString('fr-FR') : '';
+    toast('☁️ Planning chargé depuis Drive' + (ts ? ' — ' + ts : ''));
+  } catch(e) { toast('❌ Erreur : ' + e.message); }
 }
 
 async function driveParseurUpload() {
