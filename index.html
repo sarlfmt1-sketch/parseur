@@ -120,7 +120,6 @@ textarea { width:100%; background:#0d1117; border:1px solid var(--border); borde
 <nav class="tabs-nav">
   <button class="tab-btn active" onclick="switchTab('francilite')">🚌 Francilité</button>
   <button class="tab-btn" onclick="switchTab('parseur')">⚙️ Parseur</button>
-  <button class="tab-btn" onclick="switchTab('planning')">📅 Planning</button>
 </nav>
 
 <!-- ══════════════════════════ ONGLET 1 : FRANCILITÉ ══════════════════════════ -->
@@ -191,7 +190,6 @@ Ex:
       <button class="btn btn-sm btn-nouveau" onclick="showParsePanel()">+ Nouveau</button>
       <button class="btn btn-sm" id="btn-add-manual" onclick="toggleAddPanel()" style="background:rgba(39,174,96,.15);border-color:rgba(39,174,96,.5);color:#27ae60;display:none">+ Trajet</button>
       <button class="btn btn-sm btn-export" onclick="exportJSON()" title="Exporter JSON">⬇ JSON</button>
-      <button class="btn btn-sm" onclick="driveParseurSignIn()" id="parseur-drive-btn" title="Sync Google Drive" style="background:rgba(66,133,244,.15);border-color:#4285f4;color:#4285f4">☁️ Drive</button>
       <button class="btn btn-sm btn-json" onclick="document.getElementById('import-file-parseur').click()" title="Importer JSON">📂 JSON</button>
       <input type="file" id="import-file-parseur" accept=".json" style="display:none" onchange="importJSON(event)">
       <span id="svc-count" style="font-size:12px;color:var(--muted);margin-left:auto"></span>
@@ -217,36 +215,6 @@ Ex:
       </div>
     </div>
     <div id="result"></div>
-  </div>
-</div>
-
-<!-- ══════════════════════════ ONGLET 3 : PLANNING ══════════════════════════ -->
-<div id="tab-planning" class="tab-pane">
-  <div style="padding:12px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px">
-      <button class="btn btn-sm btn-secondary" onclick="parseurPlanNav(-1)" style="font-size:18px;padding:6px 14px">◀</button>
-      <div style="font-size:15px;font-weight:700;color:#00d4ff;text-align:center;flex:1" id="parseur-plan-title">📅 Planning</div>
-      <button class="btn btn-sm btn-secondary" onclick="parseurPlanNav(1)" style="font-size:18px;padding:6px 14px">▶</button>
-    </div>
-    <!-- Bouton Drive dans le planning -->
-    <div style="display:flex;gap:8px;margin-bottom:10px">
-      <button id="plan-drive-btn" onclick="driveParseurSignIn()" style="flex:1;background:rgba(66,133,244,.15);border:1px solid #4285f4;color:#4285f4;border-radius:8px;padding:8px;font-weight:700;cursor:pointer;font-size:13px">
-        ☁️ Connexion Drive
-      </button>
-      <button id="plan-drive-save-btn" onclick="driveParseurUpload()" style="flex:1;background:rgba(39,174,96,.15);border:1px solid #27ae60;color:#27ae60;border-radius:8px;padding:8px;font-weight:700;cursor:pointer;font-size:13px;display:none">
-        ⬆️ Sauver sur Drive
-      </button>
-      <button id="plan-drive-load-btn" onclick="driveParseurDownload()" style="flex:1;background:rgba(255,193,7,.1);border:1px solid #ffc107;color:#ffc107;border-radius:8px;padding:8px;font-weight:700;cursor:pointer;font-size:13px;display:none">
-        ⬇️ Charger Drive
-      </button>
-    </div>
-    <div id="parseur-planning-container"></div>
-  </div>
-  <!-- Sélecteur service -->
-  <div id="parseur-plan-selector" style="position:fixed;bottom:0;left:0;right:0;background:#161b22;border-top:1px solid #30363d;padding:14px;z-index:100;transform:translateY(100%);transition:transform .25s;border-radius:16px 16px 0 0;max-height:70vh;overflow-y:auto">
-    <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:#00d4ff" id="parseur-plan-sel-title">Choisir un service</div>
-    <div id="parseur-plan-sel-options"></div>
-    <div onclick="parseurPlanCloseSelector()" style="background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);border-radius:8px;padding:10px;text-align:center;cursor:pointer;color:#e74c3c;font-weight:700;margin-top:6px">✕ Annuler</div>
   </div>
 </div>
 
@@ -2256,117 +2224,6 @@ function loadServices() {
 }
 function saveServices(svcs) {
   localStorage.setItem(ROADMAP_KEY, JSON.stringify(svcs));
-  // Sync automatique vers ChronoLigne si ouvert
-  broadcastSync(svcs);
-}
-
-// ── BroadcastChannel — sync temps réel vers ChronoLigne ─────────
-const _clChannel = new BroadcastChannel('chronoligne_sync');
-
-function broadcastSync(svcs) {
-  try {
-    _clChannel.postMessage({ type: 'SYNC_SERVICES', svcs });
-  } catch(e) {}
-}
-
-// ── Google Drive Sync ─────────────────────────
-const DRIVE_CLIENT_ID = '824903623349-bpd4r6r85g0md1neab4oh5bd6h775ell.apps.googleusercontent.com';
-const DRIVE_SCOPE     = 'https://www.googleapis.com/auth/drive.appdata';
-const DRIVE_FILE_NAME = 'chronoligne_sync.json';
-let _parseurDriveToken = null;
-
-function driveParseurSignIn() {
-  const s = document.createElement('script');
-  s.src = 'https://accounts.google.com/gsi/client';
-  s.onload = () => {
-    const client = google.accounts.oauth2.initTokenClient({
-      client_id: DRIVE_CLIENT_ID,
-      scope: DRIVE_SCOPE,
-      callback: async (resp) => {
-        if(resp.error) { toast('❌ Connexion Google échouée'); return; }
-        _parseurDriveToken = resp.access_token;
-        // Bouton toolbar
-        const btn = document.getElementById('parseur-drive-btn');
-        if(btn) { btn.textContent = '☁️ Sauver'; btn.style.background = 'rgba(39,174,96,.2)'; btn.style.borderColor = 'var(--green)'; btn.style.color = 'var(--green)'; btn.onclick = driveParseurUpload; }
-        // Boutons planning
-        const planConn = document.getElementById('plan-drive-btn');
-        const planSave = document.getElementById('plan-drive-save-btn');
-        const planLoad = document.getElementById('plan-drive-load-btn');
-        if(planConn) planConn.style.display = 'none';
-        if(planSave) planSave.style.display = '';
-        if(planLoad) planLoad.style.display = '';
-        toast('✅ Connecté à Google Drive');
-      }
-    });
-    client.requestAccessToken();
-  };
-  document.head.appendChild(s);
-}
-
-async function driveParseurGetFileId() {
-  const res = await fetch(
-    `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${DRIVE_FILE_NAME}'&fields=files(id)`,
-    { headers: { Authorization: 'Bearer ' + _parseurDriveToken } }
-  );
-  const data = await res.json();
-  return data.files?.[0]?.id || null;
-}
-
-async function driveParseurDownload() {
-  if(!_parseurDriveToken) { driveParseurSignIn(); return; }
-  try {
-    const fileId = await driveParseurGetFileId();
-    if(!fileId) { toast('⚠️ Aucun fichier trouvé sur Drive'); return; }
-    const res  = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
-      { headers: { Authorization: 'Bearer ' + _parseurDriveToken } }
-    );
-    const data = await res.json();
-    if(data.services?.length) {
-      let existing = JSON.parse(localStorage.getItem(ROADMAP_KEY)||'[]');
-      let added=0, updated=0;
-      data.services.forEach(s => {
-        const idx = existing.findIndex(r => r.num===s.num && r.jour===s.jour);
-        if(idx===-1) { existing.push(s); added++; } else { existing[idx]=s; updated++; }
-      });
-      localStorage.setItem(ROADMAP_KEY, JSON.stringify(existing));
-    }
-    if(data.planning && Object.keys(data.planning).length) {
-      let p = JSON.parse(localStorage.getItem(PARSEUR_PLANNING_KEY)||'{}');
-      Object.assign(p, data.planning);
-      localStorage.setItem(PARSEUR_PLANNING_KEY, JSON.stringify(p));
-    }
-    parseurRenderPlanning();
-    const ts = data.updatedAt ? new Date(data.updatedAt).toLocaleString('fr-FR') : '';
-    toast('☁️ Planning chargé depuis Drive' + (ts ? ' — ' + ts : ''));
-  } catch(e) { toast('❌ Erreur : ' + e.message); }
-}
-
-async function driveParseurUpload() {
-  if(!_parseurDriveToken) { driveParseurSignIn(); return; }
-  try {
-    const svcs = loadServices();
-    const planning = JSON.parse(localStorage.getItem('chronoligne_planning') || '{}');
-    const payload  = { services: svcs, planning, updatedAt: new Date().toISOString() };
-    const json     = JSON.stringify(payload);
-    const fileId   = await driveParseurGetFileId();
-
-    const url    = fileId
-      ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`
-      : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
-    const method = fileId ? 'PATCH' : 'POST';
-
-    const meta = JSON.stringify({ name: DRIVE_FILE_NAME, ...(!fileId && { parents: ['appDataFolder'] }) });
-    const body = new FormData();
-    body.append('metadata', new Blob([meta], { type: 'application/json' }));
-    body.append('file',     new Blob([json], { type: 'application/json' }));
-
-    const res = await fetch(url, { method, headers: { Authorization: 'Bearer ' + _parseurDriveToken }, body });
-    if(res.ok) toast(`☁️ ${svcs.length} service(s) sauvegardé(s) sur Drive`);
-    else toast('❌ Erreur sauvegarde Drive');
-  } catch(e) {
-    toast('❌ ' + e.message);
-  }
 }
 
 // ── Export JSON (compatible Chronoligne) ────────────────────────
@@ -2626,9 +2483,7 @@ function confirmDeleteSvc(idx, confirmId) {
   const s = svcs[idx];
   if(!s) return;
   svcs.splice(idx,1);
-  // Sauvegarder et notifier ChronoLigne de la suppression
-  localStorage.setItem(ROADMAP_KEY, JSON.stringify(svcs));
-  try { _clChannel.postMessage({ type: 'DELETE_SERVICE', num: s.num, jour: s.jour||'semaine' }); } catch(e) {}
+  saveServices(svcs);
   document.getElementById(confirmId)?.remove();
   renderSvcList();
   toast(`🗑 Service ${s.num} supprimé`);
@@ -2640,25 +2495,17 @@ function saveService(parsedData) {
   const jour = document.getElementById('save-jour').value;
   if(!num) { toast('Entrez un numéro de service'); return; }
 
-  const toMinSave = (t) => {
-    const time = t.depart || t.stops?.[0]?.time || '00:00';
-    const [h, m] = time.split(':').map(Number);
-    return (h < 5 ? h + 24 : h) * 60 + (m || 0);
-  };
-
   const svc = {
     num, jour,
     depotDepart: parsedData.depotDepart || '',
     depotRetour: parsedData.depotRetour || '',
     heures: null,
-    trips: [...parsedData.trips]
-      .sort((a, b) => toMinSave(a) - toMinSave(b))
-      .map(t => ({
-        lineNum: t.lineNum,
-        lineColor: t.lineColor,
-        label: t.label,
-        stops: t.stops
-      }))
+    trips: parsedData.trips.map(t => ({
+      lineNum: t.lineNum,
+      lineColor: t.lineColor,
+      label: t.label,
+      stops: t.stops
+    }))
   };
 
   if(svc.depotDepart && svc.depotRetour) {
@@ -2720,18 +2567,7 @@ function runParse() {
 
   const parsed = parseIneoFeuille(raw);
   lastParsed = parsed;
-  const { depotDepart, depotRetour, log } = parsed;
-
-  // Trier les trajets — heures après minuit (00h-04h) placées en fin de service
-  const toMin = (t) => {
-    const time = t.depart || t.stops?.[0]?.time || '00:00';
-    const [h, m] = time.split(':').map(Number);
-    return (h < 5 ? h + 24 : h) * 60 + (m || 0);
-  };
-  parsed.trips.sort((a, b) => toMin(a) - toMin(b));
-  lastParsed.trips = parsed.trips; // s'assurer que lastParsed est aussi mis à jour
-  const trips = parsed.trips;
-
+  const { depotDepart, depotRetour, trips, log } = parsed;
   const out = document.getElementById('result');
 
   if(!trips.length) {
@@ -2894,18 +2730,11 @@ function editSvc(idx) {
   const s = svcs[idx];
   if(!s) return;
 
-  // Charger dans lastParsed avec tri correct (après minuit = fin de service)
-  const toMinEdit = (t) => {
-    const time = t.stops?.[0]?.time || '00:00';
-    const [h, m] = time.split(':').map(Number);
-    return (h < 5 ? h + 24 : h) * 60 + (m || 0);
-  };
+  // Charger dans lastParsed
   lastParsed = {
     depotDepart: s.depotDepart||'',
     depotRetour: s.depotRetour||'',
-    trips: s.trips
-      .map(t => ({...t, stops: t.stops.map(st=>({...st}))}))
-      .sort((a, b) => toMinEdit(a) - toMinEdit(b))
+    trips: s.trips.map(t => ({...t, stops: t.stops.map(st=>({...st}))}))
   };
 
   // Afficher le panneau d'édition
@@ -2944,9 +2773,8 @@ function switchTab(name) {
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
-  const idx = {francilite:0, parseur:1, planning:2}[name];
+  const idx = {francilite:0, parseur:1}[name];
   document.querySelectorAll('.tab-btn')[idx].classList.add('active');
-  if(name === 'planning') parseurRenderPlanning();
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -3176,8 +3004,7 @@ function fcAddStop(ti) {
   // Insérer dans le bon ordre chronologique
   const newStop = { time, name, ineo: ineo||'0', intervalAfter: 1, isRef: true, refTime: time };
   t.stops.push(newStop);
-  const stopToMin = (s) => { const [h,m]=(s.time||'00:00').split(':').map(Number); return (h<5?h+24:h)*60+m; };
-  t.stops.sort((a,b) => stopToMin(a) - stopToMin(b));
+  t.stops.sort((a,b) => a.time.localeCompare(b.time));
   // Recalculer intervalles
   t.stops = t.stops.map((s,i) => {
     if(i===t.stops.length-1) return {...s, intervalAfter:0};
@@ -3223,13 +3050,7 @@ function fcCreateFeuille() {
   }
 
   // Trier les trajets par heure de départ
-  // Les heures après minuit (00:xx - 04:xx) sont considérées comme appartenant au lendemain
-  const toSortMin = (t) => {
-    const [h, m] = (t.depart||'00:00').split(':').map(Number);
-    // Si heure < 5h → considérer comme h + 24 pour le tri
-    return (h < 5 ? h + 24 : h) * 60 + m;
-  };
-  _fcTrips.sort((a, b) => toSortMin(a) - toSortMin(b));
+  _fcTrips.sort((a, b) => a.depart.localeCompare(b.depart));
 
   // Calculer heures dépôt
   const depotDepart = _fcTrips[0].depart;
@@ -3277,27 +3098,6 @@ function fcCreateFeuille() {
   _svcFilter = jour;
   renderSvcList();
   switchTab('parseur');
-
-  // Afficher les trajets dans l'éditeur parseur
-  lastParsed = {
-    depotDepart: svc.depotDepart,
-    depotRetour: svc.depotRetour,
-    trips: svc.trips.map(t => ({
-      ...t,
-      depart: t.stops?.[0]?.time || '',
-      arrivee: t.stops?.[t.stops.length-1]?.time || '',
-      stops: t.stops.map(s=>({...s}))
-    }))
-  };
-  const out = document.getElementById('result');
-  let html = `<div class="save-bar">
-    <span style="font-size:13px;font-weight:700;color:var(--green)">✅ Service ${num} créé</span>
-    <button class="btn btn-sm btn-nouveau" onclick="saveService(lastParsed)" style="margin-top:0">💾 Modifier</button>
-    <button class="btn btn-sm" onclick="document.getElementById('result').innerHTML=''" style="margin-top:0;border-color:var(--red);color:var(--red)">✕ Fermer</button>
-  </div>`;
-  lastParsed.trips.forEach((t, ti) => { html += renderEditableTrip(t, ti, false); });
-  if(out) { out.innerHTML = html; out.scrollIntoView({ behavior:'smooth' }); }
-
   toast(`✅ Service ${num} créé avec ${svc.trips.length} trajet(s) !`);
 }
 
@@ -3307,7 +3107,33 @@ renderSvcList();
 // ══════════════════════════════════════════════════════
 // RÉCEPTION IMPORT BOOKMARKLET
 // ══════════════════════════════════════════════════════
-
+(function fsoCheckImport() {
+  var fsoReceived = false;
+  window.addEventListener('message', function(event) {
+    if (!event.data || event.data.type !== 'fso_import') return;
+    if (fsoReceived) {
+      // Confirmer mais ignorer
+      if (event.source) try { event.source.postMessage({type:'fso_ack'},'*'); } catch(e){}
+      return;
+    }
+    fsoReceived = true;
+    try {
+      var data = JSON.parse(event.data.data);
+      if (!data.trajets || !data.trajets.length) return;
+      if (Date.now() - data.ts > 5 * 60 * 1000) return;
+      // Vider les anciens trajets
+      _fcTrips = [];
+      var imported = fsoInjectTrajets(data.trajets);
+      if (imported > 0) {
+        fcRenderTripsList();
+        switchTab('francilite');
+        setTimeout(function() { toast(imported + ' trajet(s) importes depuis FSO !'); }, 300);
+      }
+      // Confirmer reception au bookmarklet
+      if (event.source) try { event.source.postMessage({type:'fso_ack'},'*'); } catch(e){}
+    } catch(e) { console.error('postMessage error:', e); }
+  });
+})();
 
 function fsoInjectTrajets(trajets) {
   var imported = 0;
@@ -3360,162 +3186,6 @@ function fsoDetectLine(arrets) {
     }
   }
   return null;
-}
-
-// ════════════════════════════════════════════════════════════════
-// PLANNING
-// ════════════════════════════════════════════════════════════════
-const PARSEUR_PLANNING_KEY = 'chronoligne_planning';
-const PARSEUR_JOURS_FR   = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
-const PARSEUR_MOIS_FR    = ['jan','fév','mar','avr','mai','juin','juil','aoû','sep','oct','nov','déc'];
-const PARSEUR_FERIES     = ['01-01','05-01','05-08','07-14','08-15','11-01','11-11','12-25'];
-let parseurPlanOffset = 0;
-
-function parseurIsFerie(d) {
-  const mmdd = String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  if(PARSEUR_FERIES.includes(mmdd)) return true;
-  const y=d.getFullYear(),a=y%19,b=Math.floor(y/100),c=y%100,d2=Math.floor(b/4),e=b%4;
-  const f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d2-g+15)%30;
-  const i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451);
-  const mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1;
-  const paques=new Date(y,mo-1,da);
-  for(const offset of [1,39,49,50]) {
-    const f2=new Date(paques); f2.setDate(paques.getDate()+offset);
-    if(f2.getFullYear()===y&&f2.getMonth()===d.getMonth()&&f2.getDate()===d.getDate()) return true;
-  }
-  return false;
-}
-
-function parseurLoadPlanning() {
-  try { return JSON.parse(localStorage.getItem(PARSEUR_PLANNING_KEY)||'{}'); } catch(e) { return {}; }
-}
-function parseurSavePlanning(p) { try { localStorage.setItem(PARSEUR_PLANNING_KEY, JSON.stringify(p)); } catch(e) {} }
-function parseurPlanKey(d) {
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-}
-
-function parseurRenderPlanning() {
-  const container = document.getElementById('parseur-planning-container');
-  if(!container) return;
-  const planning = parseurLoadPlanning();
-  const today = new Date(); today.setHours(0,0,0,0);
-  const dow = today.getDay();
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - (dow===0?6:dow-1) + parseurPlanOffset*7);
-  const end = new Date(monday); end.setDate(monday.getDate()+13);
-  const titre = `${monday.getDate()} ${PARSEUR_MOIS_FR[monday.getMonth()]} – ${end.getDate()} ${PARSEUR_MOIS_FR[end.getMonth()]} ${end.getFullYear()}`;
-  document.getElementById('parseur-plan-title').textContent = '📅 ' + titre;
-
-  let svcs = [];
-  try { svcs = JSON.parse(localStorage.getItem('chronoligne_roadmaps')||'[]'); } catch(e) {}
-
-  let html = '';
-  for(let i=0; i<15; i++) {
-    const d = new Date(monday); d.setDate(monday.getDate()+i);
-    const key = parseurPlanKey(d);
-    const isToday = d.getTime()===today.getTime();
-    const ferie = parseurIsFerie(d);
-    const dowIdx = d.getDay();
-    const jourType = dowIdx===0?'dimanche':dowIdx===6?'samedi':'semaine';
-
-    let svc = null;
-    if(planning[key] && planning[key]!=='repos') {
-      svc = svcs.find(s => s.num===planning[key]);
-    } else if(!planning[key]) {
-      const filtered = svcs.filter(s => s.jour===jourType);
-      if(filtered.length===1) svc = filtered[0];
-    }
-    const isRepos = planning[key]==='repos';
-
-    const borderColor = isToday ? 'border-color:#00d4ff;box-shadow:0 0 8px rgba(0,212,255,.2)' :
-                        ferie   ? 'border-color:#ffc107' : 'border-color:#30363d';
-    const opacity = isRepos ? 'opacity:.5' : '';
-
-    html += `<div style="background:#161b22;border:1px solid #30363d;${borderColor};${opacity};border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
-      <div style="min-width:52px;text-align:center">
-        <div style="font-size:11px;color:#7d8590;font-weight:700;text-transform:uppercase">${PARSEUR_JOURS_FR[dowIdx]}</div>
-        <div style="font-size:22px;font-weight:700;font-family:monospace;color:${isToday?'#00d4ff':'inherit'}">${d.getDate()}</div>
-      </div>
-      <div style="flex:1">`;
-
-    if(isRepos) {
-      html += `<div style="font-size:13px;color:#7d8590;font-style:italic">🛌 Repos</div>`;
-    } else if(svc) {
-      const lines = (svc.trips||[]).map(t=>`<span style="background:${t.lineColor||'#555'};color:#fff;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:700">${t.lineNum||'?'}</span>`).join(' ');
-      const hours = svc.depotDepart?`${svc.depotDepart}→${svc.depotRetour||'?'}`:'';
-      html += `<div style="font-size:14px;font-weight:700;color:#00d4ff">Svc ${svc.num} <span style="font-size:11px;color:#7d8590;font-weight:400">${hours}</span> ${ferie?'<span style="font-size:11px;color:#ffc107">🎉 Férié</span>':''}</div>
-      <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">${lines}</div>`;
-    } else {
-      html += `<div style="font-size:13px;color:${ferie?'#ffc107':'#7d8590'};font-style:italic">${ferie?'🎉 Férié':'— non planifié —'}</div>`;
-    }
-
-    // Bouton play si service assigné
-    const playBtn = svc
-      ? `<button onclick="parseurPlanStartService('${svc.num}','${svc.jour||jourType}');event.stopPropagation()" style="background:rgba(39,174,96,.15);border:1.5px solid rgba(39,174,96,.5);color:#27ae60;border-radius:6px;padding:4px 10px;font-size:14px;font-weight:700;cursor:pointer">▶</button>`
-      : '';
-
-    html += `</div>
-      <div style="display:flex;gap:4px;align-items:center">
-        ${playBtn}
-        <button onclick="parseurPlanEdit('${key}','${jourType}')" style="background:transparent;border:1px solid #30363d;color:#7d8590;border-radius:6px;padding:3px 8px;font-size:12px;cursor:pointer">✏️</button>
-      </div>
-    </div>`;
-  }
-
-  container.innerHTML = html;
-}
-
-function parseurPlanNav(dir) { parseurPlanOffset += dir; parseurRenderPlanning(); }
-
-function parseurPlanEdit(dateKey, jourType) {
-  const planning = parseurLoadPlanning();
-  const current  = planning[dateKey];
-  let svcs = [];
-  try { svcs = JSON.parse(localStorage.getItem('chronoligne_roadmaps')||'[]'); } catch(e) {}
-
-  const sel   = document.getElementById('parseur-plan-selector');
-  const title = document.getElementById('parseur-plan-sel-title');
-  const opts  = document.getElementById('parseur-plan-sel-options');
-  const [y,m,dd] = dateKey.split('-').map(Number);
-  const d = new Date(y,m-1,dd);
-  title.textContent = `${PARSEUR_JOURS_FR[d.getDay()]} ${dd} ${PARSEUR_MOIS_FR[m-1]}`;
-
-  let html = `<div onclick="parseurPlanAssign('${dateKey}','repos')" style="background:rgba(255,255,255,.05);border:1px solid ${current==='repos'?'#00d4ff':'#30363d'};border-radius:8px;padding:10px 14px;margin-bottom:6px;cursor:pointer">
-    🛌 <b>Repos</b></div>`;
-
-  svcs.forEach(s => {
-    const lines = (s.trips||[]).map(t=>`<span style="background:${t.lineColor||'#555'};color:#fff;padding:1px 7px;border-radius:4px;font-size:10px;font-weight:700">${t.lineNum||'?'}</span>`).join(' ');
-    const hours = s.depotDepart?`${s.depotDepart}→${s.depotRetour||'?'}`:'';
-    const sel2  = current===s.num?'border-color:#00d4ff;background:rgba(0,212,255,.08)':'border-color:#30363d';
-    html += `<div onclick="parseurPlanAssign('${dateKey}','${s.num}')" style="background:rgba(255,255,255,.05);border:1px solid;${sel2};border-radius:8px;padding:10px 14px;margin-bottom:6px;cursor:pointer">
-      <div style="font-weight:700;font-size:14px;color:#00d4ff">Svc ${s.num} <span style="font-size:11px;color:#7d8590;font-weight:400">${hours}</span></div>
-      <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">${lines}</div>
-    </div>`;
-  });
-
-  if(!svcs.length) html += `<div style="padding:14px;color:#7d8590;font-size:13px;text-align:center">Aucun service enregistré</div>`;
-  opts.innerHTML = html;
-  sel.style.transform = 'translateY(0)';
-}
-
-function parseurPlanAssign(dateKey, val) {
-  const planning = parseurLoadPlanning();
-  if(val==='repos') planning[dateKey]='repos';
-  else if(planning[dateKey]===val) delete planning[dateKey];
-  else planning[dateKey]=val;
-  parseurSavePlanning(planning);
-  parseurPlanCloseSelector();
-  parseurRenderPlanning();
-}
-
-function parseurPlanCloseSelector() {
-  const sel = document.getElementById('parseur-plan-selector');
-  if(sel) sel.style.transform = 'translateY(100%)';
-}
-
-function parseurPlanStartService(num, jour) {
-  toast('✅ Service ' + num + ' assigné — sync vers ChronoLigne');
-  try { _clChannel.postMessage({ type: 'START_SERVICE', num, jour }); } catch(e) {}
 }
 
 </script>
