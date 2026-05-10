@@ -3227,7 +3227,14 @@ function previewShowPlanning(planning) {
       +'<span class="preview-day-badge">'+svc.trips.length+' trajets</span>'
       +'<span style="color:var(--accent);margin-left:8px;font-size:14px" id="pday-arrow-'+idx+'">▼</span>'
       +'</div>'
-      +'<div class="preview-day-trips" id="pday-trips-'+idx+'">'+tripsHtml+'</div>'
+      +'<div class="preview-day-trips" id="pday-trips-'+idx+'">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px;background:rgba(0,212,255,.04);border:1px solid rgba(0,212,255,.15);border-radius:6px">'
+      +'<span style="font-size:12px;color:var(--accent);font-weight:700;white-space:nowrap">N\u00b0 service :</span>'
+      +'<input type="text" id="pday-num-'+idx+'" value="'+svc.num+'" placeholder="Ex: 112" oninput="previewUpdateNum('+idx+',this.value)" style="background:#0d1117;border:1px solid rgba(0,212,255,.3);border-radius:6px;color:#fff;font-size:15px;font-weight:700;padding:6px 10px;width:110px;outline:none">'
+      +'<span style="font-size:11px;color:var(--muted)">'+ svc.depotDepart+' \u2192 '+svc.depotRetour+' &bull; '+svc.trips.length+' trajets</span>'
+      +'</div>'
+      +tripsHtml
+      +'</div>'
       +'</div>';
   }).join('');
 
@@ -3265,6 +3272,10 @@ function previewSaveAll() {
   renderSvcList();
   switchTab('parseur');
   toast('✅ ' + saved + ' service(s) enregistré(s) !');
+}
+
+function previewUpdateNum(idx, val) {
+  if (_previewData[idx]) _previewData[idx].num = val.trim();
 }
 
 function previewCancel() {
