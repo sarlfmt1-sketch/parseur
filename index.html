@@ -3147,23 +3147,71 @@ renderSvcList();
 
       // MODE PLANNING MULTI-JOURS
       if (data.planning && data.planning.length) {
-        _fcTrips = [];
-        var totalTrajets = 0;
+        var svcs = loadServices();
         var joursOk = [];
+
         for (var d = 0; d < data.planning.length; d++) {
           var jour = data.planning[d];
           if (!jour.trajets || !jour.trajets.length) continue;
-          var imported = fsoInjectTrajets(jour.trajets);
-          if (imported > 0) {
-            totalTrajets += imported;
-            joursOk.push(jour.date);
-          }
+
+          // Injecter les trajets dans _fcTrips temporairement
+          _fcTrips = [];
+          fsoInjectTrajets(jour.trajets);
+          if (!_fcTrips.length) continue;
+
+          // Determiner le type de jour
+          var dateObj = new Date(jour.date + 'T12:00:00');
+          var dow = dateObj.getDay();
+          var jourType = dow===0?'dimanche':dow===6?'samedi':'semaine';
+
+          // Calculer heures depot
+          var depotDepart = _fcTrips[0].depart;
+          var depotRetour = _fcTrips[_fcTrips.length-1].arrivee;
+          var p1 = depotDepart.split(':').map(Number);
+          var p2 = depotRetour.split(':').map(Number);
+          var diff = (p2[0]*60+p2[1]) - (p1[0]*60+p1[1]);
+          if (diff < 0) diff += 1440;
+          var heures = diff / 60;
+
+          // Numero de service = date JJMM
+          var dp = jour.date.split('-');
+          var numAuto = dp[2] + dp[1];
+
+          var svc = {
+            num: numAuto,
+            jour: jourType,
+            date: jour.date,
+            depotDepart: depotDepart,
+            depotRetour: depotRetour,
+            heures: heures,
+            trips: _fcTrips.map(function(t) {
+              return {
+                lineNum: t.lineNum || '?',
+                lineColor: t.lineColor,
+                label: t.label,
+                depart: t.depart,
+                arrivee: t.arrivee,
+                stops: t.stops.map(function(s) {
+                  return { name: s.name, ineo: s.ineo, time: s.time, intervalAfter: s.intervalAfter, isRef: true, refTime: s.time };
+                })
+              };
+            })
+          };
+
+          // Remplacer si existe deja (meme date)
+          var idx2 = svcs.findIndex(function(s) { return s.date === jour.date || s.num === numAuto; });
+          if (idx2 === -1) svcs.push(svc); else svcs[idx2] = svc;
+          joursOk.push(jour.date);
         }
-        if (totalTrajets > 0) {
+
+        if (joursOk.length) {
+          saveServices(svcs);
+          _fcTrips = [];
           fcRenderTripsList();
-          switchTab('francilite');
+          renderSvcList();
+          switchTab('parseur');
           setTimeout(function() {
-            toast(totalTrajets + ' trajet(s) sur ' + joursOk.length + ' jour(s) importes !');
+            toast(joursOk.length + ' jour(s) importes et crees automatiquement !');
           }, 300);
         }
       }
