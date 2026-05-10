@@ -3137,24 +3137,47 @@ renderSvcList();
   window.addEventListener('message', function(event) {
     if (!event.data || event.data.type !== 'fso_import') return;
     if (fsoReceived) {
-      // Confirmer mais ignorer
       if (event.source) try { event.source.postMessage({type:'fso_ack'},'*'); } catch(e){}
       return;
     }
     fsoReceived = true;
     try {
       var data = JSON.parse(event.data.data);
-      if (!data.trajets || !data.trajets.length) return;
-      if (Date.now() - data.ts > 5 * 60 * 1000) return;
-      // Vider les anciens trajets
-      _fcTrips = [];
-      var imported = fsoInjectTrajets(data.trajets);
-      if (imported > 0) {
-        fcRenderTripsList();
-        switchTab('francilite');
-        setTimeout(function() { toast(imported + ' trajet(s) importes depuis FSO !'); }, 300);
+      if (Date.now() - data.ts > 10 * 60 * 1000) return;
+
+      // MODE PLANNING MULTI-JOURS
+      if (data.planning && data.planning.length) {
+        _fcTrips = [];
+        var totalTrajets = 0;
+        var joursOk = [];
+        for (var d = 0; d < data.planning.length; d++) {
+          var jour = data.planning[d];
+          if (!jour.trajets || !jour.trajets.length) continue;
+          var imported = fsoInjectTrajets(jour.trajets);
+          if (imported > 0) {
+            totalTrajets += imported;
+            joursOk.push(jour.date);
+          }
+        }
+        if (totalTrajets > 0) {
+          fcRenderTripsList();
+          switchTab('francilite');
+          setTimeout(function() {
+            toast(totalTrajets + ' trajet(s) sur ' + joursOk.length + ' jour(s) importes !');
+          }, 300);
+        }
       }
-      // Confirmer reception au bookmarklet
+      // MODE JOUR UNIQUE (ancien bookmarklet)
+      else if (data.trajets && data.trajets.length) {
+        _fcTrips = [];
+        var imported2 = fsoInjectTrajets(data.trajets);
+        if (imported2 > 0) {
+          fcRenderTripsList();
+          switchTab('francilite');
+          setTimeout(function() { toast(imported2 + ' trajet(s) importes !'); }, 300);
+        }
+      }
+
       if (event.source) try { event.source.postMessage({type:'fso_ack'},'*'); } catch(e){}
     } catch(e) { console.error('postMessage error:', e); }
   });
