@@ -3276,6 +3276,22 @@ function fcCreateFeuille() {
   // Aller au parseur pour voir le résultat
   _svcFilter = jour;
   renderSvcList();
+
+  // Afficher les trajets dans l'éditeur parseur
+  lastParsed = {
+    depotDepart: svc.depotDepart,
+    depotRetour: svc.depotRetour,
+    trips: svc.trips.map(t => ({...t, stops: t.stops.map(s=>({...s}))}))
+  };
+  const out = document.getElementById('result');
+  let html = `<div class="save-bar">
+    <span style="font-size:13px;font-weight:700;color:var(--green)">✅ Service ${num} créé</span>
+    <button class="btn btn-sm btn-nouveau" onclick="saveService(lastParsed)" style="margin-top:0">💾 Modifier</button>
+    <button class="btn btn-sm" onclick="out.innerHTML=''" style="margin-top:0;border-color:var(--red);color:var(--red)">✕ Fermer</button>
+  </div>`;
+  lastParsed.trips.forEach((t, ti) => { html += renderEditableTrip(t, ti, false); });
+  if(out) { out.innerHTML = html; out.scrollIntoView({ behavior:'smooth' }); }
+
   switchTab('parseur');
   toast(`✅ Service ${num} créé avec ${svc.trips.length} trajet(s) !`);
 }
