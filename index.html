@@ -111,6 +111,22 @@ textarea { width:100%; background:#0d1117; border:1px solid var(--border); borde
 .fso-log { background:#0d1117; border-radius:6px; padding:8px; font-family:monospace; font-size:11px; color:var(--muted); margin-top:8px; max-height:120px; overflow-y:auto; display:none; }
 .fso-separator { display:flex; align-items:center; gap:10px; margin:14px 0; color:var(--muted); font-size:11px; }
 .fso-separator::before, .fso-separator::after { content:''; flex:1; height:1px; background:var(--border); }
+
+/* ── PREVIEW PLANNING ── */
+.preview-panel { background:#0d1117;border:2px solid #00d4ff;border-radius:12px;padding:0;margin-bottom:14px;overflow:hidden;display:none; }
+.preview-header { background:rgba(0,212,255,.08);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(0,212,255,.2); }
+.preview-title { font-size:15px;font-weight:700;color:#00d4ff; }
+.preview-day { border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer;transition:background .15s; }
+.preview-day:last-child { border-bottom:none; }
+.preview-day:hover { background:rgba(255,255,255,.03); }
+.preview-day-header { padding:12px 16px;display:flex;align-items:center;gap:10px; }
+.preview-day-date { font-size:13px;font-weight:700;color:#e8eaf0;min-width:140px; }
+.preview-day-info { font-size:12px;color:var(--muted);flex:1; }
+.preview-day-badge { background:rgba(0,212,255,.15);border:1px solid rgba(0,212,255,.3);color:#00d4ff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700; }
+.preview-day-trips { padding:0 16px 12px;display:none; }
+.preview-day-trip { background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:6px;padding:8px 10px;margin-bottom:4px;display:flex;align-items:center;gap:8px;font-size:11px; }
+.btn-preview-save { background:linear-gradient(135deg,#27ae60,#1e8449);border:1px solid #27ae60;color:#fff;font-size:14px;font-weight:700;padding:11px;border-radius:8px;cursor:pointer;flex:1; }
+.btn-preview-cancel { background:rgba(231,76,60,.1);border:1px solid #e74c3c;color:#e74c3c;padding:11px 14px;border-radius:8px;cursor:pointer;font-size:13px; }
 </style>
 </head>
 <body>
@@ -129,6 +145,19 @@ textarea { width:100%; background:#0d1117; border:1px solid var(--border); borde
     <div class="toolbar">
       <h1 style="margin:0">🚌 Import Francilité</h1>
       <span style="font-size:11px;color:var(--muted);margin-left:auto" id="fc-trip-count"></span>
+    </div>
+
+    <!-- PREVIEW PLANNING MULTI-JOURS -->
+    <div class="preview-panel" id="preview-panel">
+      <div class="preview-header">
+        <div class="preview-title">📅 Prévisualisation — jours importés</div>
+        <span id="preview-count" style="font-size:12px;color:var(--muted)"></span>
+      </div>
+      <div id="preview-days"></div>
+      <div style="padding:12px 16px;display:flex;gap:8px;border-top:1px solid rgba(255,255,255,.06)">
+        <button class="btn-preview-save" onclick="previewSaveAll()">✅ Enregistrer tous les services</button>
+        <button class="btn-preview-cancel" onclick="previewCancel()">✕</button>
+      </div>
     </div>
 
     <!-- Instructions -->
@@ -3130,6 +3159,122 @@ function fcCreateFeuille() {
 renderSvcList();
 
 // ══════════════════════════════════════════════════════
+// PREVIEW PLANNING MULTI-JOURS
+// ══════════════════════════════════════════════════════
+var _previewData = [];
+const JOURS_NOMS = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+const MOIS_NOMS = ['jan','fev','mar','avr','mai','jun','jul','aou','sep','oct','nov','dec'];
+
+function previewBuildSvc(jour) {
+  _fcTrips = [];
+  fsoInjectTrajets(jour.trajets);
+  if (!_fcTrips.length) return null;
+  var dateObj = new Date(jour.date + 'T12:00:00');
+  var dow = dateObj.getDay();
+  var jourType = dow===0?'dimanche':dow===6?'samedi':'semaine';
+  var depotDepart = _fcTrips[0].depart;
+  var depotRetour = _fcTrips[_fcTrips.length-1].arrivee;
+  var p1 = depotDepart.split(':').map(Number);
+  var p2 = depotRetour.split(':').map(Number);
+  var diff = (p2[0]*60+p2[1]) - (p1[0]*60+p1[1]);
+  if (diff < 0) diff += 1440;
+  var dp = jour.date.split('-');
+  var numAuto = dp[2] + dp[1];
+  return {
+    num: numAuto, jour: jourType, date: jour.date,
+    depotDepart, depotRetour, heures: diff/60,
+    trips: _fcTrips.map(t => ({
+      lineNum: t.lineNum||'?', lineColor: t.lineColor, label: t.label,
+      depart: t.depart, arrivee: t.arrivee,
+      stops: t.stops.map(s => ({name:s.name,ineo:s.ineo,time:s.time,intervalAfter:s.intervalAfter,isRef:true,refTime:s.time}))
+    }))
+  };
+}
+
+function previewShowPlanning(planning) {
+  _previewData = [];
+  var panel = document.getElementById('preview-panel');
+  var daysEl = document.getElementById('preview-days');
+  var countEl = document.getElementById('preview-count');
+
+  // Construire les services
+  for (var i = 0; i < planning.length; i++) {
+    var jour = planning[i];
+    if (!jour.trajets || !jour.trajets.length) continue;
+    var svc = previewBuildSvc(jour);
+    if (svc) _previewData.push(svc);
+  }
+  _fcTrips = [];
+
+  if (!_previewData.length) { toast('Aucun trajet à prévisualiser'); return; }
+
+  countEl.textContent = _previewData.length + ' jour(s)';
+
+  var html = _previewData.map(function(svc, idx) {
+    var d = new Date(svc.date + 'T12:00:00');
+    var nomJour = JOURS_NOMS[d.getDay()];
+    var dateLabel = nomJour + ' ' + d.getDate() + ' ' + MOIS_NOMS[d.getMonth()] + ' ' + d.getFullYear();
+    var lignes = svc.trips.map(function(t) {
+      return '<span style="background:'+t.lineColor+';color:#fff;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700">'+t.lineNum+'</span>';
+    }).join(' ');
+    var tripsHtml = svc.trips.map(function(t) {
+      return '<div class="preview-day-trip"><span style="background:'+t.lineColor+';color:#fff;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700">'+t.lineNum+'</span><span style="color:#e8eaf0">'+t.depart+'→'+t.arrivee+'</span><span style="color:var(--muted);flex:1">'+t.label.split(' - ')[1]+'</span><span style="color:var(--muted)">'+t.stops.length+' arrêts</span></div>';
+    }).join('');
+    return '<div class="preview-day" id="pday-'+idx+'">'
+      +'<div class="preview-day-header" onclick="previewToggleDay('+idx+')">'
+      +'<div class="preview-day-date">'+dateLabel+'</div>'
+      +'<div class="preview-day-info">'+svc.depotDepart+' → '+svc.depotRetour+' &nbsp; '+lignes+'</div>'
+      +'<span class="preview-day-badge">'+svc.trips.length+' trajets</span>'
+      +'<span style="color:var(--accent);margin-left:8px;font-size:14px" id="pday-arrow-'+idx+'">▼</span>'
+      +'</div>'
+      +'<div class="preview-day-trips" id="pday-trips-'+idx+'">'+tripsHtml+'</div>'
+      +'</div>';
+  }).join('');
+
+  daysEl.innerHTML = html;
+  panel.style.display = 'block';
+  switchTab('francilite');
+  document.getElementById('preview-panel').scrollIntoView({behavior:'smooth'});
+  toast(_previewData.length + ' jour(s) prêts — vérifie et enregistre !');
+}
+
+function previewToggleDay(idx) {
+  var trips = document.getElementById('pday-trips-'+idx);
+  var arrow = document.getElementById('pday-arrow-'+idx);
+  if (trips.style.display === 'block') {
+    trips.style.display = 'none';
+    arrow.textContent = '▼';
+  } else {
+    trips.style.display = 'block';
+    arrow.textContent = '▲';
+  }
+}
+
+function previewSaveAll() {
+  if (!_previewData.length) return;
+  var svcs = loadServices();
+  var saved = 0;
+  _previewData.forEach(function(svc) {
+    var idx2 = svcs.findIndex(function(s) { return s.date === svc.date || s.num === svc.num; });
+    if (idx2 === -1) svcs.push(svc); else svcs[idx2] = svc;
+    saved++;
+  });
+  saveServices(svcs);
+  _previewData = [];
+  document.getElementById('preview-panel').style.display = 'none';
+  renderSvcList();
+  switchTab('parseur');
+  toast('✅ ' + saved + ' service(s) enregistré(s) !');
+}
+
+function previewCancel() {
+  _previewData = [];
+  document.getElementById('preview-panel').style.display = 'none';
+  document.getElementById('preview-days').innerHTML = '';
+}
+
+
+// ══════════════════════════════════════════════════════
 // RÉCEPTION IMPORT BOOKMARKLET
 // ══════════════════════════════════════════════════════
 (function fsoCheckImport() {
@@ -3145,75 +3290,9 @@ renderSvcList();
       var data = JSON.parse(event.data.data);
       if (Date.now() - data.ts > 10 * 60 * 1000) return;
 
-      // MODE PLANNING MULTI-JOURS
+      // MODE PLANNING MULTI-JOURS -> PREVIEW
       if (data.planning && data.planning.length) {
-        var svcs = loadServices();
-        var joursOk = [];
-
-        for (var d = 0; d < data.planning.length; d++) {
-          var jour = data.planning[d];
-          if (!jour.trajets || !jour.trajets.length) continue;
-
-          // Injecter les trajets dans _fcTrips temporairement
-          _fcTrips = [];
-          fsoInjectTrajets(jour.trajets);
-          if (!_fcTrips.length) continue;
-
-          // Determiner le type de jour
-          var dateObj = new Date(jour.date + 'T12:00:00');
-          var dow = dateObj.getDay();
-          var jourType = dow===0?'dimanche':dow===6?'samedi':'semaine';
-
-          // Calculer heures depot
-          var depotDepart = _fcTrips[0].depart;
-          var depotRetour = _fcTrips[_fcTrips.length-1].arrivee;
-          var p1 = depotDepart.split(':').map(Number);
-          var p2 = depotRetour.split(':').map(Number);
-          var diff = (p2[0]*60+p2[1]) - (p1[0]*60+p1[1]);
-          if (diff < 0) diff += 1440;
-          var heures = diff / 60;
-
-          // Numero de service = date JJMM
-          var dp = jour.date.split('-');
-          var numAuto = dp[2] + dp[1];
-
-          var svc = {
-            num: numAuto,
-            jour: jourType,
-            date: jour.date,
-            depotDepart: depotDepart,
-            depotRetour: depotRetour,
-            heures: heures,
-            trips: _fcTrips.map(function(t) {
-              return {
-                lineNum: t.lineNum || '?',
-                lineColor: t.lineColor,
-                label: t.label,
-                depart: t.depart,
-                arrivee: t.arrivee,
-                stops: t.stops.map(function(s) {
-                  return { name: s.name, ineo: s.ineo, time: s.time, intervalAfter: s.intervalAfter, isRef: true, refTime: s.time };
-                })
-              };
-            })
-          };
-
-          // Remplacer si existe deja (meme date)
-          var idx2 = svcs.findIndex(function(s) { return s.date === jour.date || s.num === numAuto; });
-          if (idx2 === -1) svcs.push(svc); else svcs[idx2] = svc;
-          joursOk.push(jour.date);
-        }
-
-        if (joursOk.length) {
-          saveServices(svcs);
-          _fcTrips = [];
-          fcRenderTripsList();
-          renderSvcList();
-          switchTab('parseur');
-          setTimeout(function() {
-            toast(joursOk.length + ' jour(s) importes et crees automatiquement !');
-          }, 300);
-        }
+        previewShowPlanning(data.planning);
       }
       // MODE JOUR UNIQUE (ancien bookmarklet)
       else if (data.trajets && data.trajets.length) {
