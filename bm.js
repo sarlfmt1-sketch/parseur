@@ -7,19 +7,27 @@ var p=h4.textContent.trim().toLowerCase().replace(/[\xe9\xe8]/g,'e').replace(/\x
 var mois=mn[p[0]]||1,annee=parseInt(p[1]);
 var days=document.querySelectorAll('.ui-datebox-griddate.ui-btn');
 var jours=[];
+var today=new Date();
+today.setHours(0,0,0,0);
 for(var i=0;i<days.length;i++){
   var n=parseInt(days[i].textContent.trim());
   if(!isNaN(n)&&n>0){
     var bg=days[i].style.backgroundColor;
-    jours.push({n:n,s:bg&&bg!='rgb(255, 255, 255)'&&bg!=''});
+    var hasService=bg&&bg!='rgb(255, 255, 255)'&&bg!='';
+    var dateJour=new Date(annee,mois-1,n);
+    var isPast=dateJour<today;
+    jours.push({n:n,s:hasService,past:isPast});
   }
 }
 var mm=('0'+mois).slice(-2);
 var html=jours.map(function(j){
   var dd=('0'+j.n).slice(-2);
   var dateStr=annee+'-'+mm+'-'+dd;
-  var col=j.s?'#00d4ff':'#555';
-  return '<label style="display:inline-flex;align-items:center;gap:3px;margin:3px;border:1px solid '+col+';border-radius:5px;padding:5px 8px;cursor:pointer;font-size:12px;color:'+col+'"><input type=checkbox value="'+dateStr+'" '+(j.s?'checked':'')+' style="accent-color:#00d4ff"> '+dd+'/'+mm+'</label>';
+  var col=j.past?'#333':j.s?'#00d4ff':'#555';
+  var txtCol=j.past?'#444':j.s?'#00d4ff':'#888';
+  var checked=j.s&&!j.past?'checked':'';
+  var disabled=j.past?'disabled':'';
+  return '<label style="display:inline-flex;align-items:center;gap:3px;margin:3px;border:1px solid '+col+';border-radius:5px;padding:5px 8px;cursor:'+(j.past?'not-allowed':'pointer')+';font-size:12px;color:'+txtCol+';opacity:'+(j.past?'0.35':'1')+'"><input type=checkbox value="'+dateStr+'" '+checked+' '+disabled+' style="accent-color:#00d4ff"> '+dd+'/'+mm+'</label>';
 }).join('');
 var ov=document.createElement('div');
 ov.id='clv';
