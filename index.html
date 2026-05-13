@@ -3654,6 +3654,8 @@ function parseurPlanEdit(dateKey, jourType) {
   const [y,m,dd] = dateKey.split('-').map(Number);
   const d = new Date(y,m-1,dd);
   title.textContent = `${PARSEUR_JOURS_FR[d.getDay()]} ${dd} ${PARSEUR_MOIS_FR[m-1]}`;
+  // Filtrer par type de jour
+  svcs = svcs.filter(s => (s.jour||'semaine') === jourType);
   let html = `<div onclick="parseurPlanAssign('${dateKey}','repos')" style="background:rgba(255,255,255,.05);border:1px solid ${current==='repos'?'#00d4ff':'#30363d'};border-radius:8px;padding:10px 14px;margin-bottom:6px;cursor:pointer">🛌 <b>Repos</b></div>`;
   svcs.sort((a,b)=>(parseInt(a.num)||0)-(parseInt(b.num)||0)).forEach(s => {
     const lines=(s.trips||[]).map(t=>`<span style="background:${t.lineColor||'#555'};color:#fff;padding:1px 7px;border-radius:4px;font-size:10px;font-weight:700">${t.lineNum||'?'}</span>`).join(' ');
