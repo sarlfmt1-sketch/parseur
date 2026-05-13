@@ -2434,12 +2434,21 @@ function addTripManual() {
 
 // ── Filtre actif pour la liste ───────────────────────────────────
 let _svcFilter = 'semaine';
+let _svcSearch = '';
+let _svcView = 'detailed'; // 'detailed' ou 'compact'
 
 function setSvcFilter(f) {
   _svcFilter = f;
-  document.querySelectorAll('.svc-filter-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.filter === f);
-  });
+  renderSvcList();
+}
+
+function setSvcSearch(val) {
+  _svcSearch = val.toLowerCase().trim();
+  renderSvcList();
+}
+
+function setSvcView(v) {
+  _svcView = v;
   renderSvcList();
 }
 
@@ -2455,20 +2464,41 @@ function renderSvcList() {
     return;
   }
 
-  // Compter par catégorie
   const cSem = allSvcs.filter(s=>(s.jour||'semaine')==='semaine').length;
   const cSat = allSvcs.filter(s=>s.jour==='samedi').length;
   const cDim = allSvcs.filter(s=>s.jour==='dimanche').length;
 
-  // Filtrer + trier par numéro croissant
-  const svcs = allSvcs
-    .filter(s => (s.jour||'semaine') === _svcFilter)
-    .sort((a,b) => {
-      const na = parseInt(a.num)||0, nb = parseInt(b.num)||0;
-      return na - nb;
+  // Filtrer par jour
+  let svcs = allSvcs.filter(s => (s.jour||'semaine') === _svcFilter);
+
+  // Filtrer par recherche
+  if(_svcSearch) {
+    svcs = svcs.filter(s => {
+      const numMatch = String(s.num).includes(_svcSearch);
+      const lineMatch = s.trips && s.trips.some(t => String(t.lineNum||'').includes(_svcSearch));
+      return numMatch || lineMatch;
     });
+  }
+
+  // Trier par numéro
+  svcs.sort((a,b) => (parseInt(a.num)||0) - (parseInt(b.num)||0));
 
   if(cnt) cnt.textContent = `${allSvcs.length} service(s)`;
+
+  // Barre recherche + vue
+  const searchBar = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <div style="flex:1;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:7px 10px">
+      <span style="color:var(--muted);font-size:14px">🔍</span>
+      <input type="text" placeholder="N° service ou ligne..." value="${_svcSearch}"
+        oninput="setSvcSearch(this.value)"
+        style="background:none;border:none;outline:none;color:var(--text);font-size:13px;width:100%">
+      ${_svcSearch ? `<button onclick="setSvcSearch('');document.querySelector('#svc-list-section input[type=text]').value=''" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0">✕</button>` : ''}
+    </div>
+    <button onclick="setSvcView('detailed')" title="Vue détaillée"
+      style="padding:7px 10px;border-radius:8px;border:1px solid ${_svcView==='detailed'?'var(--accent)':'var(--border)'};background:${_svcView==='detailed'?'rgba(0,212,255,.15)':'rgba(255,255,255,.04)'};color:${_svcView==='detailed'?'var(--accent)':'var(--muted)'};cursor:pointer;font-size:13px">≡</button>
+    <button onclick="setSvcView('compact')" title="Vue compacte"
+      style="padding:7px 10px;border-radius:8px;border:1px solid ${_svcView==='compact'?'var(--accent)':'var(--border)'};background:${_svcView==='compact'?'rgba(0,212,255,.15)':'rgba(255,255,255,.04)'};color:${_svcView==='compact'?'var(--accent)':'var(--muted)'};cursor:pointer;font-size:13px">⋮⋮</button>
+  </div>`;
 
   // Barre de filtres
   const filterBar = `<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
@@ -2487,28 +2517,78 @@ function renderSvcList() {
   </div>`;
 
   if(!svcs.length) {
-    section.innerHTML = filterBar + `<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">Aucun service ${_svcFilter}</div>`;
+    section.innerHTML = searchBar + filterBar + `<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">${_svcSearch ? 'Aucun résultat pour "'+_svcSearch+'"' : 'Aucun service '+_svcFilter}</div>`;
     return;
   }
 
-  // Trouver l'index réel dans allSvcs pour deleteSvc/editSvc
-  const rows = svcs.map(s => {
-    const realIdx = allSvcs.indexOf(s);
-    const lines = s.trips.map(t => {
-      const num = t.lineNum || (t.label||'').match(/Ligne (\S+)/)?.[1] || '?';
-      const color = t.lineColor || '#888';
-      return `<span style="background:${color};color:#fff;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:700">${num}</span>`;
-    }).join(' ');
-    const depot = s.depotDepart ? `${s.depotDepart}→${s.depotRetour||'?'}` : '';
-    return `<div class="svc-item">
-      <span class="svc-item-num">Svc ${s.num}</span>
-      <span class="svc-item-lines">${lines} ${depot ? '<span style="color:var(--muted);font-size:10px">· '+depot+'</span>' : ''}</span>
-      <button class="svc-item-edit" onclick="editSvc(${realIdx})" title="Modifier">✏️</button>
-      <button class="svc-item-del" onclick="deleteSvc(${realIdx})" title="Supprimer">✕</button>
-    </div>`;
-  }).join('');
+  let rows = '';
 
-  section.innerHTML = filterBar + `<div class="svc-list-wrap">${rows}</div>`;
+  if (_svcView === 'detailed') {
+    // VUE DÉTAILLÉE
+    rows = svcs.map(s => {
+      const realIdx = allSvcs.indexOf(s);
+      const lines = s.trips.map(t => {
+        const num = t.lineNum || (t.label||'').match(/Ligne (\S+)/)?.[1] || '?';
+        const color = t.lineColor || '#888';
+        return `<span style="background:${color};color:#fff;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:700">${num}</span>`;
+      }).join(' ');
+      const depot = s.depotDepart ? `${s.depotDepart}→${s.depotRetour||'?'}` : '';
+      return `<div class="svc-item">
+        <span class="svc-item-num">Svc ${s.num}</span>
+        <span class="svc-item-lines">${lines} ${depot ? '<span style="color:var(--muted);font-size:10px">· '+depot+'</span>' : ''}</span>
+        <button class="svc-item-edit" onclick="editSvc(${realIdx})" title="Modifier">✏️</button>
+        <button class="svc-item-del" onclick="deleteSvc(${realIdx})" title="Supprimer">✕</button>
+      </div>`;
+    }).join('');
+    rows = `<div class="svc-list-wrap">${rows}</div>`;
+
+  } else {
+    // VUE COMPACTE - tableau
+    const tableRows = svcs.map(s => {
+      const realIdx = allSvcs.indexOf(s);
+      const uniqueLines = [...new Set(s.trips.map(t => t.lineNum||'?'))];
+      const linesHtml = uniqueLines.slice(0,3).map(n => {
+        const color = s.trips.find(t=>t.lineNum===n)?.lineColor||'#888';
+        return `<span style="background:${color};color:#fff;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:700">${n}</span>`;
+      }).join(' ') + (uniqueLines.length>3 ? `<span style="font-size:10px;color:var(--muted)">+${uniqueLines.length-3}</span>` : '');
+      const depot = s.depotDepart ? `${s.depotDepart}→${s.depotRetour||'?'}` : '—';
+      // Calculer durée
+      let duree = '';
+      if(s.depotDepart && s.depotRetour) {
+        const p1 = s.depotDepart.split(':').map(Number);
+        const p2 = s.depotRetour.split(':').map(Number);
+        let d = (p2[0]*60+p2[1])-(p1[0]*60+p1[1]);
+        if(d<0)d+=1440;
+        duree = Math.floor(d/60)+'h'+String(d%60).padStart(2,'0');
+      }
+      return `<tr style="border-bottom:1px solid rgba(255,255,255,.04)">
+        <td style="padding:7px 8px;font-size:13px;font-weight:700;white-space:nowrap;color:var(--text)">Svc ${s.num}</td>
+        <td style="padding:7px 8px;display:flex;gap:3px;align-items:center;flex-wrap:wrap">${linesHtml}</td>
+        <td style="padding:7px 8px;font-size:11px;color:var(--muted);white-space:nowrap">${depot}</td>
+        <td style="padding:7px 8px;font-size:11px;color:var(--muted);white-space:nowrap">${duree}</td>
+        <td style="padding:7px 4px;white-space:nowrap">
+          <button onclick="editSvc(${realIdx})" style="background:none;border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;padding:3px 6px;font-size:11px">✏️</button>
+          <button onclick="deleteSvc(${realIdx})" style="background:none;border:1px solid rgba(231,76,60,.3);border-radius:5px;color:var(--red);cursor:pointer;padding:3px 6px;font-size:11px">✕</button>
+        </td>
+      </tr>`;
+    }).join('');
+    rows = `<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="background:rgba(255,255,255,.04);border-bottom:1px solid var(--border)">
+            <th style="padding:7px 8px;font-size:11px;color:var(--muted);text-align:left;font-weight:600">Service</th>
+            <th style="padding:7px 8px;font-size:11px;color:var(--muted);text-align:left;font-weight:600">Lignes</th>
+            <th style="padding:7px 8px;font-size:11px;color:var(--muted);text-align:left;font-weight:600">Horaires</th>
+            <th style="padding:7px 8px;font-size:11px;color:var(--muted);text-align:left;font-weight:600">Durée</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>`;
+  }
+
+  section.innerHTML = searchBar + filterBar + rows;
 }
 
 function deleteSvc(idx) {
@@ -3179,7 +3259,7 @@ function previewBuildSvc(jour) {
   var diff = (p2[0]*60+p2[1]) - (p1[0]*60+p1[1]);
   if (diff < 0) diff += 1440;
   var dp = jour.date.split('-');
-  var numAuto = dp[2] + dp[1];
+  var numAuto = jour.numSvc || (dp[2] + dp[1]);
   return {
     num: numAuto, jour: jourType, date: jour.date,
     depotDepart, depotRetour, heures: diff/60,
