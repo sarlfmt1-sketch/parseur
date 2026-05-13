@@ -221,6 +221,7 @@ Ex:
       <button class="btn btn-sm" id="btn-add-manual" onclick="toggleAddPanel()" style="background:rgba(39,174,96,.15);border-color:rgba(39,174,96,.5);color:#27ae60;display:none">+ Trajet</button>
       <button class="btn btn-sm btn-export" onclick="exportJSON()" title="Exporter JSON">⬇ JSON</button>
       <button class="btn btn-sm" onclick="driveParseurSignIn()" id="parseur-drive-btn" title="Sync Google Drive" style="background:rgba(66,133,244,.15);border-color:#4285f4;color:#4285f4">☁️ Drive</button>
+      <button class="btn btn-sm" onclick="driveParseurDownload()" id="parseur-drive-load-btn" title="Charger depuis Drive" style="background:rgba(255,193,7,.1);border-color:#ffc107;color:#ffc107;display:none">⬇️ Charger</button>
       <button class="btn btn-sm btn-json" onclick="document.getElementById('import-file-parseur').click()" title="Importer JSON">📂 JSON</button>
       <input type="file" id="import-file-parseur" accept=".json" style="display:none" onchange="importJSON(event)">
       <span id="svc-count" style="font-size:12px;color:var(--muted);margin-left:auto"></span>
@@ -3484,6 +3485,8 @@ function driveParseurSignIn() {
         _parseurDriveToken = resp.access_token;
         const btn = document.getElementById('parseur-drive-btn');
         if(btn) { btn.textContent='☁️ Sauver'; btn.style.background='rgba(39,174,96,.2)'; btn.style.borderColor='#27ae60'; btn.style.color='#27ae60'; btn.onclick=driveParseurUpload; }
+        const parseurLoadBtn = document.getElementById('parseur-drive-load-btn');
+        if(parseurLoadBtn) parseurLoadBtn.style.display = '';
         const planConn = document.getElementById('plan-drive-btn');
         const planSave = document.getElementById('plan-drive-save-btn');
         const planLoad = document.getElementById('plan-drive-load-btn');
@@ -3602,9 +3605,14 @@ function parseurRenderPlanning() {
   let svcs = [];
   try { svcs = JSON.parse(localStorage.getItem(ROADMAP_KEY)||'[]'); } catch(e) {}
 
+  // Trier les services par numero
+  svcs.sort((a,b) => (parseInt(a.num)||0) - (parseInt(b.num)||0));
+
   let html = '';
   for(let i=0; i<15; i++) {
     const d = new Date(monday); d.setDate(monday.getDate()+i);
+    // Cacher les jours passes
+    if(d < today) continue;
     const key = parseurPlanKey(d);
     const isToday = d.getTime()===today.getTime();
     const ferie = parseurIsFerie(d);
@@ -3647,7 +3655,7 @@ function parseurPlanEdit(dateKey, jourType) {
   const d = new Date(y,m-1,dd);
   title.textContent = `${PARSEUR_JOURS_FR[d.getDay()]} ${dd} ${PARSEUR_MOIS_FR[m-1]}`;
   let html = `<div onclick="parseurPlanAssign('${dateKey}','repos')" style="background:rgba(255,255,255,.05);border:1px solid ${current==='repos'?'#00d4ff':'#30363d'};border-radius:8px;padding:10px 14px;margin-bottom:6px;cursor:pointer">🛌 <b>Repos</b></div>`;
-  svcs.forEach(s => {
+  svcs.sort((a,b)=>(parseInt(a.num)||0)-(parseInt(b.num)||0)).forEach(s => {
     const lines=(s.trips||[]).map(t=>`<span style="background:${t.lineColor||'#555'};color:#fff;padding:1px 7px;border-radius:4px;font-size:10px;font-weight:700">${t.lineNum||'?'}</span>`).join(' ');
     const hours=s.depotDepart?`${s.depotDepart}→${s.depotRetour||'?'}`:'';
     const sel2=current===s.num?'border-color:#00d4ff;background:rgba(0,212,255,.08)':'border-color:#30363d';
