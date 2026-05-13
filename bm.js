@@ -56,6 +56,19 @@ async function gt(date){
   var r=await fetch('/Home/Services?dateJour='+encodeURIComponent(date),{credentials:'include'});
   var h=await r.text();
   var doc=new DOMParser().parseFromString(h,'text/html');
+
+  // Extraire numero de service (Groupage)
+  var numSvc=null;
+  var bTags=doc.querySelectorAll('b');
+  for(var bi=0;bi<bTags.length;bi++){
+    if(bTags[bi].textContent.includes('Groupage')){
+      var gTxt=bTags[bi].parentElement.textContent;
+      var gm=gTxt.match(/Groupage\s*:\s*(\d+)/);
+      if(gm)numSvc=gm[1];
+      break;
+    }
+  }
+
   var els=doc.querySelectorAll('[idserv]');
   var ids=[];
   for(var i=0;i<els.length;i++){
@@ -81,7 +94,7 @@ async function gt(date){
       if(ar.length>=2)tr.push({ligne:lm[1],arrets:ar});
     }catch(e){}
   }
-  return tr;
+  return {trajets:tr, numSvc:numSvc};
 }
 
 document.getElementById('clbtn').onclick=async function(){
@@ -96,7 +109,9 @@ document.getElementById('clbtn').onclick=async function(){
     ss('Jour '+(i+1)+'/'+cs.length+': '+dt);
     lg('>> '+dt);
     try{
-      var tr=await gt(dt);
+      var res=await gt(dt);
+      var tr=res.trajets;
+      var numSvc=res.numSvc;
       var hasN=false;
       for(var k=0;k<tr.length;k++){
         var fin=tr[k].arrets[tr[k].arrets.length-1].heure;
@@ -107,11 +122,12 @@ document.getElementById('clbtn').onclick=async function(){
         var d=new Date(parseInt(pt[0]),parseInt(pt[1])-1,parseInt(pt[2]));
         d.setDate(d.getDate()+1);
         var nx=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
-        var tr2=await gt(nx);
-        var nt=tr2.filter(function(t){var dv=hm(t.arrets[0].heure);return dv>=0&&dv<=180;});
+        var res2=await gt(nx);
+        var nt=res2.trajets.filter(function(t){var dv=hm(t.arrets[0].heure);return dv>=0&&dv<=180;});
         if(nt.length){tr=tr.concat(nt);lg('   +'+nt.length+' nuit');}
       }
-      pl.push({date:dt,trajets:tr});
+      if(numSvc)lg('   N service: '+numSvc);
+      pl.push({date:dt,trajets:tr,numSvc:numSvc});
       lg('   OK '+tr.length+' trajets');
     }catch(e){
       lg('   ERR: '+e.message);
