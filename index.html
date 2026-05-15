@@ -3341,18 +3341,29 @@ function previewToggleDay(idx) {
 function previewSaveAll() {
   if (!_previewData.length) return;
   var svcs = loadServices();
+  var planning = parseurLoadPlanning();
   var saved = 0;
+
   _previewData.forEach(function(svc) {
+    // Enregistrer le service
     var idx2 = svcs.findIndex(function(s) { return s.date === svc.date || s.num === svc.num; });
     if (idx2 === -1) svcs.push(svc); else svcs[idx2] = svc;
+
+    // Assigner automatiquement au planning si la date est connue
+    if (svc.date) {
+      planning[svc.date] = svc.num;
+    }
     saved++;
   });
+
   saveServices(svcs);
+  parseurSavePlanning(planning);
   _previewData = [];
   document.getElementById('preview-panel').style.display = 'none';
   renderSvcList();
+  parseurRenderPlanning();
   switchTab('parseur');
-  toast('✅ ' + saved + ' service(s) enregistré(s) !');
+  toast('✅ ' + saved + ' service(s) enregistré(s) et planning mis à jour !');
 }
 
 function previewUpdateNum(idx, val) {
