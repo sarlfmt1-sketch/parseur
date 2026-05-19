@@ -3261,9 +3261,35 @@ function previewBuildSvc(jour) {
   if (diff < 0) diff += 1440;
   var dp = jour.date.split('-');
   var numAuto = jour.numSvc || (dp[2] + dp[1]);
+
+  // Heures PS/FS
+  var heurePS = jour.heurePS || _fcTrips[0].depart;
+  var heureFS = jour.heureFS || _fcTrips[_fcTrips.length-1].arrivee;
+
+  // Calculer durée de travail PS->FS
+  function toMin(h){var p=h.split(':').map(Number);return p[0]*60+p[1];}
+  var psMin=toMin(heurePS), fsMin=toMin(heureFS);
+  var dureeMin=fsMin-psMin; if(dureeMin<0)dureeMin+=1440;
+  var dureeTravail=Math.floor(dureeMin/60)+'h'+String(dureeMin%60).padStart(2,'0');
+
+  // Calculer indemnités repas
+  var indemRepasUnique=false, indemSpeciale=false;
+  var isMatin=psMin<12*60; // service du matin si PS avant midi
+  if(isMatin){
+    if(fsMin>=14*60)indemRepasUnique=true;
+    if(fsMin>=13*60+30)indemSpeciale=true;
+  } else {
+    if(fsMin>=21*60+30||fsMin<6*60)indemRepasUnique=true;
+    if(fsMin>=21*60||fsMin<6*60)indemSpeciale=true;
+  }
+  if(psMin<5*60)indemSpeciale=true;
   return {
     num: numAuto, jour: jourType, date: jour.date,
     depotDepart, depotRetour, heures: diff/60,
+    heurePS: heurePS, heureFS: heureFS,
+    dureeTravail: dureeTravail,
+    indemRepasUnique: indemRepasUnique,
+    indemSpeciale: indemSpeciale,
     trips: _fcTrips.map(t => ({
       lineNum: t.lineNum||'?', lineColor: t.lineColor, label: t.label,
       depart: t.depart, arrivee: t.arrivee,
@@ -3644,7 +3670,13 @@ function parseurRenderPlanning() {
     else if(svc) {
       const lines=(svc.trips||[]).map(t=>`<span style="background:${t.lineColor||'#555'};color:#fff;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:700">${t.lineNum||'?'}</span>`).join(' ');
       const hours=svc.depotDepart?`${svc.depotDepart}→${svc.depotRetour||'?'}`:'';
-      html += `<div style="font-size:14px;font-weight:700;color:#00d4ff">Svc ${svc.num} <span style="font-size:11px;color:#7d8590;font-weight:400">${hours}</span>${ferie?' <span style="font-size:11px;color:#ffc107">🎉 Férié</span>':''}</div><div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">${lines}</div>`;
+      const psfs=svc.heurePS?`<span style="font-size:10px;color:#7d8590">PS ${svc.heurePS} → FS ${svc.heureFS||'?'}</span>`:'';
+      const duree=svc.dureeTravail?`<span style="font-size:11px;color:#00d4ff;font-weight:700">⏱ ${svc.dureeTravail}</span>`:'';
+      const indemU=svc.indemRepasUnique?`<span style="background:rgba(39,174,96,.15);border:1px solid rgba(39,174,96,.4);color:#27ae60;font-size:10px;padding:1px 6px;border-radius:4px">🍽 10€</span>`:'';
+      const indemS=svc.indemSpeciale?`<span style="background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.4);color:#f59e0b;font-size:10px;padding:1px 6px;border-radius:4px">🍽 5€</span>`:'';
+      html += `<div style="font-size:14px;font-weight:700;color:#00d4ff">Svc ${svc.num} <span style="font-size:11px;color:#7d8590;font-weight:400">${hours}</span>${ferie?' <span style="font-size:11px;color:#ffc107">🎉 Férié</span>':''}</div>
+      <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">${lines}</div>
+      <div style="margin-top:5px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">${psfs} ${duree} ${indemU} ${indemS}</div>`;
     } else html += `<div style="font-size:13px;color:${ferie?'#ffc107':'#7d8590'};font-style:italic">${ferie?'🎉 Férié':'— non planifié —'}</div>`;
     const playBtn = svc ? `<button onclick="toast('▶ Svc ${svc.num}');event.stopPropagation()" style="background:rgba(39,174,96,.15);border:1.5px solid rgba(39,174,96,.5);color:#27ae60;border-radius:6px;padding:4px 10px;font-size:14px;font-weight:700;cursor:pointer">▶</button>` : '';
     html += `</div><div style="display:flex;gap:4px;align-items:center">${playBtn}<button onclick="parseurPlanEdit('${key}','${jourType}')" style="background:transparent;border:1px solid #30363d;color:#7d8590;border-radius:6px;padding:3px 8px;font-size:12px;cursor:pointer">✏️</button></div></div>`;
