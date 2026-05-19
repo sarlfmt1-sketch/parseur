@@ -69,6 +69,15 @@ async function gt(date){
     }
   }
 
+  // Extraire PS et FS
+  var heurePS=null, heureFS=null;
+  var allEls=doc.querySelectorAll('[idserv]');
+  for(var pi=0;pi<allEls.length;pi++){
+    var pH=allEls[pi].innerHTML;
+    if(!heurePS){var psM=pH.match(/(\d{2}:\d{2})\s*-\s*PS\s*>>/);if(psM)heurePS=psM[1];}
+    if(!heureFS){var fsM=pH.match(/(\d{2}:\d{2})\s*-\s*FS\s*>>/);if(fsM)heureFS=fsM[1];}
+  }
+
   var els=doc.querySelectorAll('[idserv]');
   var ids=[];
   for(var i=0;i<els.length;i++){
@@ -94,7 +103,7 @@ async function gt(date){
       if(ar.length>=2)tr.push({ligne:lm[1],arrets:ar});
     }catch(e){}
   }
-  return {trajets:tr, numSvc:numSvc};
+  return {trajets:tr, numSvc:numSvc, heurePS:heurePS, heureFS:heureFS};
 }
 
 document.getElementById('clbtn').onclick=async function(){
@@ -127,7 +136,8 @@ document.getElementById('clbtn').onclick=async function(){
         if(nt.length){tr=tr.concat(nt);lg('   +'+nt.length+' nuit');}
       }
       if(numSvc)lg('   N service: '+numSvc);
-      pl.push({date:dt,trajets:tr,numSvc:numSvc});
+      if(res.heurePS)lg('   PS: '+res.heurePS+' FS: '+(res.heureFS||'?'));
+      pl.push({date:dt,trajets:tr,numSvc:numSvc,heurePS:res.heurePS,heureFS:res.heureFS});
       lg('   OK '+tr.length+' trajets');
     }catch(e){
       lg('   ERR: '+e.message);
