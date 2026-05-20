@@ -5,6 +5,7 @@ if(!h4){alert('Va sur la page ChoixDate!');return;}
 var mn={'janvier':1,'fevrier':2,'mars':3,'avril':4,'mai':5,'juin':6,'juillet':7,'aout':8,'septembre':9,'octobre':10,'novembre':11,'decembre':12};
 var p=h4.textContent.trim().toLowerCase().replace(/[\xe9\xe8]/g,'e').replace(/\xfb/g,'u').split(' ');
 var mois=mn[p[0]]||1,annee=parseInt(p[1]);
+var jours_noms=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
 var days=document.querySelectorAll('.ui-datebox-griddate.ui-btn');
 var jours=[];
 var today=new Date();
@@ -13,10 +14,23 @@ for(var i=0;i<days.length;i++){
   var n=parseInt(days[i].textContent.trim());
   if(!isNaN(n)&&n>0){
     var bg=days[i].style.backgroundColor;
-    var hasService=bg&&bg!='rgb(255, 255, 255)'&&bg!='';
+    // Seulement les jours avec service coloré (bleu clair = Régulier)
+    // Exclure gris (absence/repos) et blanc (pas de service)
+    var hasService=false;
+    if(bg&&bg!='rgb(255, 255, 255)'&&bg!=''){
+      // Exclure les gris : rgb(128,128,128), rgb(211,211,211), rgb(169,169,169) etc.
+      var rgbM=bg.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+      if(rgbM){
+        var r=parseInt(rgbM[1]),g=parseInt(rgbM[2]),b=parseInt(rgbM[3]);
+        // Si les 3 canaux sont proches = gris => pas de service
+        var isGrey=Math.abs(r-g)<20&&Math.abs(g-b)<20&&Math.abs(r-b)<20;
+        if(!isGrey)hasService=true;
+      }
+    }
     var dateJour=new Date(annee,mois-1,n);
     var isPast=dateJour<today;
-    jours.push({n:n,s:hasService,past:isPast});
+    var nomJour=jours_noms[dateJour.getDay()];
+    jours.push({n:n,s:hasService,past:isPast,nom:nomJour});
   }
 }
 var mm=('0'+mois).slice(-2);
@@ -27,7 +41,7 @@ var html=jours.map(function(j){
   var txtCol=j.past?'#444':j.s?'#00d4ff':'#888';
   var checked=j.s&&!j.past?'checked':'';
   var disabled=j.past?'disabled':'';
-  return '<label style="display:inline-flex;align-items:center;gap:3px;margin:3px;border:1px solid '+col+';border-radius:5px;padding:5px 8px;cursor:'+(j.past?'not-allowed':'pointer')+';font-size:12px;color:'+txtCol+';opacity:'+(j.past?'0.35':'1')+'"><input type=checkbox value="'+dateStr+'" '+checked+' '+disabled+' style="accent-color:#00d4ff"> '+dd+'/'+mm+'</label>';
+  return '<label style="display:inline-flex;align-items:center;gap:3px;margin:3px;border:1px solid '+col+';border-radius:5px;padding:5px 8px;cursor:'+(j.past?'not-allowed':'pointer')+';font-size:11px;color:'+txtCol+';opacity:'+(j.past?'0.35':'1')+'"><input type=checkbox value="'+dateStr+'" '+checked+' '+disabled+' style="accent-color:#00d4ff"> <span><b>'+j.nom+'</b> '+dd+'/'+mm+'</span></label>';
 }).join('');
 var ov=document.createElement('div');
 ov.id='clv';
