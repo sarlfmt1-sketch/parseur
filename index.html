@@ -3262,7 +3262,7 @@ function previewBuildSvc(jour) {
   var dp = jour.date.split('-');
   var numAuto = jour.numSvc || (dp[2] + dp[1]);
 
-  // Heures PS/FS
+  // Heures PS/FS — priorité aux vraies heures PS/FS, sinon premier/dernier trajet
   var heurePS = jour.heurePS || _fcTrips[0].depart;
   var heureFS = jour.heureFS || _fcTrips[_fcTrips.length-1].arrivee;
 
@@ -3272,9 +3272,9 @@ function previewBuildSvc(jour) {
   var dureeMin=fsMin-psMin; if(dureeMin<0)dureeMin+=1440;
   var dureeTravail=Math.floor(dureeMin/60)+'h'+String(dureeMin%60).padStart(2,'0');
 
-  // Calculer indemnités repas
+  // Calculer indemnités repas selon les règles
   var indemRepasUnique=false, indemSpeciale=false;
-  var isMatin=psMin<12*60; // service du matin si PS avant midi
+  var isMatin=psMin<12*60;
   if(isMatin){
     if(fsMin>=14*60)indemRepasUnique=true;
     if(fsMin>=13*60+30)indemSpeciale=true;
@@ -3669,7 +3669,7 @@ function parseurRenderPlanning() {
     if(isRepos) html += `<div style="font-size:13px;color:#7d8590;font-style:italic">🛌 Repos</div>`;
     else if(svc) {
       const lines=(svc.trips||[]).map(t=>`<span style="background:${t.lineColor||'#555'};color:#fff;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:700">${t.lineNum||'?'}</span>`).join(' ');
-      const hours=svc.depotDepart?`${svc.depotDepart}→${svc.depotRetour||'?'}`:'';
+      const hours=(svc.heurePS||svc.depotDepart)?`${svc.heurePS||svc.depotDepart}→${svc.heureFS||svc.depotRetour||'?'}`:'';
       const psfs=svc.heurePS?`<span style="font-size:10px;color:#7d8590">PS ${svc.heurePS} → FS ${svc.heureFS||'?'}</span>`:'';
       const duree=svc.dureeTravail?`<span style="font-size:11px;color:#00d4ff;font-weight:700">⏱ ${svc.dureeTravail}</span>`:'';
       const indemU=svc.indemRepasUnique?`<span style="background:rgba(39,174,96,.15);border:1px solid rgba(39,174,96,.4);color:#27ae60;font-size:10px;padding:1px 6px;border-radius:4px">🍽 10€</span>`:'';
