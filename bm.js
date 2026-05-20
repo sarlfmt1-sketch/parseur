@@ -13,7 +13,7 @@ for(var i=0;i<days.length;i++){
   var n=parseInt(days[i].textContent.trim());
   if(!isNaN(n)&&n>0){
     var bg=days[i].style.backgroundColor;
-    var hasService=bg&&bg!='rgb(255, 255, 255)'&&bg!='';
+    var hasService=bg&&bg!='rgb(255, 255, 255)'&&bg!=''&&bg!='rgb(211, 211, 211)'&&bg!='rgb(192, 192, 192)'&&bg!='rgb(169, 169, 169)'&&bg!='rgb(128, 128, 128)';
     var dateJour=new Date(annee,mois-1,n);
     var isPast=dateJour<today;
     jours.push({n:n,s:hasService,past:isPast});
@@ -27,7 +27,10 @@ var html=jours.map(function(j){
   var txtCol=j.past?'#444':j.s?'#00d4ff':'#888';
   var checked=j.s&&!j.past?'checked':'';
   var disabled=j.past?'disabled':'';
-  return '<label style="display:inline-flex;align-items:center;gap:3px;margin:3px;border:1px solid '+col+';border-radius:5px;padding:5px 8px;cursor:'+(j.past?'not-allowed':'pointer')+';font-size:12px;color:'+txtCol+';opacity:'+(j.past?'0.35':'1')+'"><input type=checkbox value="'+dateStr+'" '+checked+' '+disabled+' style="accent-color:#00d4ff"> '+dd+'/'+mm+'</label>';
+  var joursNom=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+  var dateObj=new Date(annee,mois-1,j.n);
+  var nomJour=joursNom[dateObj.getDay()];
+  return '<label style="display:inline-flex;align-items:center;gap:3px;margin:3px;border:1px solid '+col+';border-radius:5px;padding:5px 8px;cursor:'+(j.past?'not-allowed':'pointer')+';font-size:12px;color:'+txtCol+';opacity:'+(j.past?'0.35':'1')+'"><input type=checkbox value="'+dateStr+'" '+checked+' '+disabled+' style="accent-color:#00d4ff"> '+nomJour+' '+dd+'/'+mm+'</label>';
 }).join('');
 var ov=document.createElement('div');
 ov.id='clv';
