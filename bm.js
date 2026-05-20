@@ -74,8 +74,16 @@ async function gt(date){
   var allEls=doc.querySelectorAll('[idserv]');
   for(var pi=0;pi<allEls.length;pi++){
     var pH=allEls[pi].innerHTML;
-    if(!heurePS){var psM=pH.match(/(\d{2}:\d{2})\s*-\s*PS\s*>>/);if(psM)heurePS=psM[1];}
-    if(!heureFS){var fsM=pH.match(/(\d{2}:\d{2})\s*-\s*FS\s*>>/);if(fsM)heureFS=fsM[1];}
+    // PS : prendre l'heure "Début" dans le bloc PRISE DE SERVICE
+    if(!heurePS&&pH.includes('PRISE DE SERVICE')){
+      var psM=pH.match(/D\u00e9but\s*\u00e0\s*([\d:]+)/);
+      if(psM)heurePS=psM[1];
+    }
+    // FS : prendre l'heure "Fin" dans le bloc FIN DE SERVICE
+    if(!heureFS&&pH.includes('FIN DE SERVICE')){
+      var fsM=pH.match(/Fin\s*\u00e0\s*([\d:]+)/);
+      if(fsM)heureFS=fsM[1];
+    }
   }
 
   var els=doc.querySelectorAll('[idserv]');
