@@ -83,20 +83,32 @@ async function gt(date){
     }
   }
 
-  // Extraire PS et FS depuis les titres des collapsibles
-  var heurePS=null, heureFS=null;
+  // Extraire PS et FS
+  // PS = premier bloc dont le titre contient "PS >>"
+  // FS = dernier bloc dont le titre contient "FS >>" + 5 minutes (temps retour dépôt)
+  var heurePS=null, heureFSraw=null;
   var allEls=doc.querySelectorAll('[idserv]');
   for(var pi=0;pi<allEls.length;pi++){
     var pH=allEls[pi].innerHTML;
-    // PS : heure dans le titre "HH:MM - PS >>"
-    if(!heurePS){var psM=pH.match(/([\d]{2}:[\d]{2})\s*-\s*PS\s*>>/);if(psM)heurePS=psM[1];}
-    // FS : heure dans le titre "HH:MM - FS >>" + 5 minutes
-    if(!heureFS){var fsM=pH.match(/([\d]{2}:[\d]{2})\s*-\s*FS\s*>>/);if(fsM){
-      var fp=fsM[1].split(':').map(Number);
-      var fm=fp[0]*60+fp[1]+5;
-      if(fm>=1440)fm-=1440;
-      heureFS=('0'+Math.floor(fm/60)).slice(-2)+':'+('0'+(fm%60)).slice(-2);
-    }}
+    var titleM=pH.match(/^[^<]*?(\d{2}:\d{2})\s*-\s*(PS|FS)\s*>>/);
+    if(!titleM){
+      // chercher dans le texte visible du bloc
+      var textContent=allEls[pi].textContent||'';
+      var tmPS=textContent.match(/(\d{2}:\d{2})\s*-\s*PS\s*>>/);
+      var tmFS=textContent.match(/(\d{2}:\d{2})\s*-\s*FS\s*>>/);
+      if(tmPS&&!heurePS)heurePS=tmPS[1];
+      if(tmFS)heureFSraw=tmFS[1];
+    } else {
+      if(titleM[2]==='PS'&&!heurePS)heurePS=titleM[1];
+      if(titleM[2]==='FS')heureFSraw=titleM[1];
+    }
+  }
+  // Ajouter 5 minutes à l'heure FS brute
+  var heureFS=null;
+  if(heureFSraw){
+    var fsp=heureFSraw.split(':');
+    var fsmin=parseInt(fsp[0])*60+parseInt(fsp[1])+5;
+    heureFS=('0'+Math.floor(fsmin/60)).slice(-2)+':'+('0'+(fsmin%60)).slice(-2);
   }
 
   var els=doc.querySelectorAll('[idserv]');
