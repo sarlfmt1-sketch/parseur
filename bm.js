@@ -37,11 +37,11 @@ var mm=('0'+mois).slice(-2);
 var html=jours.map(function(j){
   var dd=('0'+j.n).slice(-2);
   var dateStr=annee+'-'+mm+'-'+dd;
-  var col=j.past?(j.s?'#b45309':'#444'):j.s?'#00d4ff':'#555';
-  var txtCol=j.past?(j.s?'#fbbf24':'#666'):j.s?'#00d4ff':'#888';
-  var accentCol=j.past?'#fbbf24':'#00d4ff';
+  var col=j.past?'#333':j.s?'#00d4ff':'#555';
+  var txtCol=j.past?'#444':j.s?'#00d4ff':'#888';
   var checked=j.s&&!j.past?'checked':'';
-  return '<label style="display:inline-flex;align-items:center;gap:3px;margin:3px;border:1px solid '+col+';border-radius:5px;padding:5px 8px;cursor:pointer;font-size:11px;color:'+txtCol+';opacity:'+(j.past&&!j.s?'0.35':'1')+'"><input type=checkbox value="'+dateStr+'" '+checked+' style="accent-color:'+accentCol+'"> <span><b>'+j.nom+'</b> '+dd+'/'+mm+(j.past?' ↩':'')+'</span></label>';
+  var disabled=j.past?'disabled':'';
+  return '<label style="display:inline-flex;align-items:center;gap:3px;margin:3px;border:1px solid '+col+';border-radius:5px;padding:5px 8px;cursor:'+(j.past?'not-allowed':'pointer')+';font-size:11px;color:'+txtCol+';opacity:'+(j.past?'0.35':'1')+'"><input type=checkbox value="'+dateStr+'" '+checked+' '+disabled+' style="accent-color:#00d4ff"> <span><b>'+j.nom+'</b> '+dd+'/'+mm+'</span></label>';
 }).join('');
 var ov=document.createElement('div');
 ov.id='clv';
@@ -52,7 +52,6 @@ ov.innerHTML='<div style="background:#1a1a2e;border:2px solid #00d4ff;border-rad
   +'<div style="display:flex;gap:6px;margin:10px 0">'
   +'<button onclick="document.querySelectorAll(\'#clj input\').forEach(function(c){c.checked=true})" style="background:rgba(0,212,255,.1);border:1px solid #00d4ff;color:#00d4ff;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:11px">Tout</button>'
   +'<button onclick="document.querySelectorAll(\'#clj input\').forEach(function(c){c.checked=false})" style="background:rgba(255,255,255,.05);border:1px solid #555;color:#888;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:11px">Aucun</button>'
-  +'<button onclick="(function(){document.querySelectorAll(\'#clj input\').forEach(function(c){c.checked=false});document.querySelectorAll(\'#clj label\').forEach(function(l){var sp=l.querySelector(\'span\');var cb=l.querySelector(\'input\');if(sp&&cb&&sp.textContent.indexOf(\' \u21a9\')>=0&&l.style.opacity!==\'0.35\')cb.checked=true})})()" style="background:rgba(251,191,36,.1);border:1px solid #b45309;color:#fbbf24;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:11px">\u21a9 Pass\u00e9s</button>'
   +'</div>'
   +'<div id=cls style="font-size:12px;color:#9ca3af;margin:8px 0;min-height:18px"></div>'
   +'<div id=clp style="background:#0d1117;border-radius:5px;padding:6px;font-size:10px;color:#6b7280;max-height:80px;overflow-y:auto;display:none;margin-bottom:8px;font-family:monospace"></div>'
