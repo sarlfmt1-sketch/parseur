@@ -3426,6 +3426,7 @@ function recapCard(icon, label, value, color) {
 // PREVIEW PLANNING MULTI-JOURS
 // ══════════════════════════════════════════════════════
 var _previewData = [];
+var _previewMode = 'planning';
 const JOURS_NOMS = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
 const MOIS_NOMS = ['jan','fev','mar','avr','mai','jun','jul','aou','sep','oct','nov','dec'];
 
@@ -3481,8 +3482,9 @@ function previewBuildSvc(jour) {
   };
 }
 
-function previewShowPlanning(planning) {
+function previewShowPlanning(planning, mode) {
   _previewData = [];
+  _previewMode = mode || 'planning';
   var panel = document.getElementById('preview-panel');
   var daysEl = document.getElementById('preview-days');
   var countEl = document.getElementById('preview-count');
@@ -3530,6 +3532,19 @@ function previewShowPlanning(planning) {
 
   daysEl.innerHTML = html;
   panel.style.display = 'block';
+  // Adapter le bouton selon le mode
+  var saveBtn = panel.querySelector('.btn-preview-save');
+  if (saveBtn) {
+    if (_previewMode === 'base') {
+      saveBtn.textContent = '📚 Enregistrer dans la base (sans planning)';
+      saveBtn.style.background = 'linear-gradient(135deg,#7c3aed,#6d28d9)';
+      saveBtn.style.borderColor = '#7c3aed';
+    } else {
+      saveBtn.textContent = '✅ Enregistrer tous les services';
+      saveBtn.style.background = 'linear-gradient(135deg,#27ae60,#1e8449)';
+      saveBtn.style.borderColor = '#27ae60';
+    }
+  }
   switchTab('francilite');
   document.getElementById('preview-panel').scrollIntoView({behavior:'smooth'});
   toast(_previewData.length + ' jour(s) prêts — vérifie et enregistre !');
@@ -3554,25 +3569,29 @@ function previewSaveAll() {
   var saved = 0;
 
   _previewData.forEach(function(svc) {
-    // Enregistrer le service
     var idx2 = svcs.findIndex(function(s) { return s.date === svc.date || s.num === svc.num; });
     if (idx2 === -1) svcs.push(svc); else svcs[idx2] = svc;
 
-    // Assigner automatiquement au planning si la date est connue
-    if (svc.date) {
+    // Assigner au planning seulement si mode planning
+    if (_previewMode !== 'base' && svc.date) {
       planning[svc.date] = svc.num;
     }
     saved++;
   });
 
   saveServices(svcs);
-  parseurSavePlanning(planning);
+  if (_previewMode !== 'base') parseurSavePlanning(planning);
   _previewData = [];
   document.getElementById('preview-panel').style.display = 'none';
   renderSvcList();
-  parseurRenderPlanning();
-  switchTab('parseur');
-  toast('✅ ' + saved + ' service(s) enregistré(s) et planning mis à jour !');
+  if (_previewMode !== 'base') {
+    parseurRenderPlanning();
+    switchTab('parseur');
+    toast('✅ ' + saved + ' service(s) enregistré(s) et planning mis à jour !');
+  } else {
+    switchTab('parseur');
+    toast('📚 ' + saved + ' service(s) ajouté(s) à la base !');
+  }
 }
 
 function previewUpdateNum(idx, val) {
@@ -3604,7 +3623,7 @@ function previewCancel() {
 
       // MODE PLANNING MULTI-JOURS -> PREVIEW
       if (data.planning && data.planning.length) {
-        previewShowPlanning(data.planning);
+        previewShowPlanning(data.planning, data.mode || 'planning');
       }
       // MODE JOUR UNIQUE (ancien bookmarklet)
       else if (data.trajets && data.trajets.length) {
