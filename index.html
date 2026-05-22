@@ -137,7 +137,23 @@ textarea { width:100%; background:#0d1117; border:1px solid var(--border); borde
   <button class="tab-btn active" onclick="switchTab('francilite')">🚌 Francilité</button>
   <button class="tab-btn" onclick="switchTab('parseur')">⚙️ Parseur</button>
   <button class="tab-btn" onclick="switchTab('planning')">📅 Planning</button>
+  <button class="tab-btn" onclick="switchTab('recap')">📊 Récap</button>
 </nav>
+
+<!-- ══════════════════════════ ONGLET RECAP ══════════════════════════ -->
+<div id="tab-recap" class="tab-pane">
+  <div style="padding:10px 0">
+    <div class="toolbar" style="margin-bottom:12px">
+      <span style="font-size:15px;font-weight:700;color:#00d4ff">📊 Récapitulatif mensuel</span>
+      <div style="display:flex;gap:8px;margin-left:auto;align-items:center">
+        <button onclick="recapPrevMonth()" style="background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 10px;cursor:pointer;font-size:16px">◀</button>
+        <span id="recap-month-label" style="font-size:14px;font-weight:700;color:var(--accent);min-width:120px;text-align:center"></span>
+        <button onclick="recapNextMonth()" style="background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 10px;cursor:pointer;font-size:16px">▶</button>
+      </div>
+    </div>
+    <div id="recap-content"></div>
+  </div>
+</div>
 
 <!-- ══════════════════════════ ONGLET 1 : FRANCILITÉ ══════════════════════════ -->
 <div id="tab-francilite" class="tab-pane active">
@@ -2910,6 +2926,7 @@ function switchTab(name) {
   const idx = {francilite:0, parseur:1, planning:2}[name] || 0;
   document.querySelectorAll('.tab-btn')[idx].classList.add('active');
   if(name === 'planning') parseurRenderPlanning();
+  if(name === 'recap') recapRender();
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -3238,6 +3255,172 @@ function fcCreateFeuille() {
 
 // Init
 renderSvcList();
+
+// ══════════════════════════════════════════════════════
+// RÉCAPITULATIF MENSUEL
+// ══════════════════════════════════════════════════════
+var _recapDate = new Date();
+var MOIS_NOMS_LONG = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+var JOURS_FERIES_FR = ['01-01','05-01','05-08','07-14','08-15','11-01','11-11','12-25'];
+
+function recapPrevMonth() { _recapDate.setMonth(_recapDate.getMonth()-1); recapRender(); }
+function recapNextMonth() { _recapDate.setMonth(_recapDate.getMonth()+1); recapRender(); }
+
+function recapIsFerie(date) {
+  var key = ('0'+(date.getMonth()+1)).slice(-2)+'-'+('0'+date.getDate()).slice(-2);
+  // Pâques dynamique
+  var y = date.getFullYear();
+  var a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),month=Math.floor((h+l-7*m+114)/31),day=((h+l-7*m+114)%31)+1;
+  var paques = new Date(y,month-1,day);
+  var lundi = new Date(paques); lundi.setDate(paques.getDate()+1);
+  var ascension = new Date(paques); ascension.setDate(paques.getDate()+39);
+  var pentecote = new Date(paques); pentecote.setDate(paques.getDate()+50);
+  var extras = [lundi,ascension,pentecote].map(function(d){return ('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);});
+  return JOURS_FERIES_FR.indexOf(key)>=0 || extras.indexOf(key)>=0;
+}
+
+function recapHeuresNuit(heurePS, heureFS) {
+  // Compter les minutes entre 21h et 6h
+  if(!heurePS || !heureFS) return 0;
+  function toMin(h){var p=h.split(':').map(Number);return p[0]*60+p[1];}
+  var ps=toMin(heurePS), fs=toMin(heureFS);
+  if(fs<ps) fs+=1440; // service de nuit
+  var nuit=0;
+  for(var m=ps;m<fs;m++){
+    var hm=m%1440;
+    if(hm>=21*60||hm<6*60) nuit++;
+  }
+  return nuit; // en minutes
+}
+
+function recapRender() {
+  var y = _recapDate.getFullYear();
+  var mo = _recapDate.getMonth();
+  var label = MOIS_NOMS_LONG[mo] + ' ' + y;
+  document.getElementById('recap-month-label').textContent = label;
+
+  var planning = parseurLoadPlanning();
+  var svcs = loadServices();
+
+  // Collecter tous les jours du mois avec service
+  var totalMin=0, totalNuitMin=0;
+  var indemRepasUnique=0, indemSpeciale=0;
+  var primeDimanche=0, primeFerie=0;
+  var jours=[];
+
+  var daysInMonth = new Date(y,mo+1,0).getDate();
+  for(var d=1;d<=daysInMonth;d++){
+    var date = new Date(y,mo,d);
+    var key = y+'-'+('0'+(mo+1)).slice(-2)+'-'+('0'+d).slice(-2);
+    var planVal = planning[key];
+    if(!planVal || planVal==='repos') continue;
+
+    var svc = svcs.find(function(s){return s.num===planVal;});
+    if(!svc) continue;
+
+    var dow = date.getDay();
+    var isDim = dow===0;
+    var isFerie = recapIsFerie(date);
+
+    // Durée travail
+    var dureeMin=0;
+    if(svc.heurePS && svc.heureFS){
+      function toMin(h){var p=h.split(':').map(Number);return p[0]*60+p[1];}
+      var ps=toMin(svc.heurePS), fs=toMin(svc.heureFS);
+      dureeMin=fs-ps; if(dureeMin<0)dureeMin+=1440;
+    }
+    totalMin+=dureeMin;
+
+    // Heures de nuit
+    var nuitMin=recapHeuresNuit(svc.heurePS,svc.heureFS);
+    totalNuitMin+=nuitMin;
+
+    // Indemnités repas
+    if(svc.indemRepasUnique) indemRepasUnique++;
+    if(svc.indemSpeciale) indemSpeciale++;
+
+    // Primes
+    if(isDim) primeDimanche++;
+    if(isFerie) primeFerie++;
+
+    jours.push({
+      date:key, dow:dow, isDim:isDim, isFerie:isFerie,
+      svc:svc, dureeMin:dureeMin, nuitMin:nuitMin
+    });
+  }
+
+  function minToH(m){return Math.floor(m/60)+'h'+String(m%60).padStart(2,'0');}
+
+  var totalRepas = indemRepasUnique*10 + indemSpeciale*5;
+  var totalPrimes = primeDimanche*50 + primeFerie*50;
+
+  var html = '';
+
+  // Cartes récap
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:16px">';
+
+  html += recapCard('⏱','Heures travaillées', minToH(totalMin), '#00d4ff');
+  html += recapCard('🌙','Heures de nuit', minToH(totalNuitMin), '#7c3aed');
+  html += recapCard('🍽','Repas unique', indemRepasUnique+' × 10€ = '+(indemRepasUnique*10)+'€', '#27ae60');
+  html += recapCard('🍽','Repas spécial', indemSpeciale+' × 5€ = '+(indemSpeciale*5)+'€', '#f59e0b');
+  html += recapCard('🌟','Prime dimanche', primeDimanche+' × 50€ = '+(primeDimanche*50)+'€', '#e879f9');
+  html += recapCard('🎉','Prime férié', primeFerie+' × 50€ = '+(primeFerie*50)+'€', '#ffc107');
+  html += recapCard('💰','Total primes repas', totalRepas+'€', '#10b981');
+  html += recapCard('💰','Total primes', totalPrimes+'€', '#f43f5e');
+
+  html += '</div>';
+
+  // Tableau détail par jour
+  if(jours.length) {
+    html += '<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;overflow:hidden">';
+    html += '<div style="padding:10px 14px;background:rgba(255,255,255,.04);border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--muted)">Détail par jour</div>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:12px">';
+    html += '<thead><tr style="background:rgba(255,255,255,.03)">';
+    html += '<th style="padding:7px 10px;text-align:left;color:var(--muted)">Date</th>';
+    html += '<th style="padding:7px 10px;text-align:left;color:var(--muted)">Service</th>';
+    html += '<th style="padding:7px 10px;text-align:left;color:var(--muted)">PS→FS</th>';
+    html += '<th style="padding:7px 10px;text-align:left;color:var(--muted)">Durée</th>';
+    html += '<th style="padding:7px 10px;text-align:left;color:var(--muted)">Nuit</th>';
+    html += '<th style="padding:7px 10px;text-align:left;color:var(--muted)">Repas</th>';
+    html += '<th style="padding:7px 10px;text-align:left;color:var(--muted)">Prime</th>';
+    html += '</tr></thead><tbody>';
+
+    var JNOMS=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+    jours.forEach(function(j) {
+      var d = new Date(j.date+'T12:00:00');
+      var nomJ = JNOMS[j.dow];
+      var dateLabel = '<b style="color:'+(j.isDim?'#e879f9':j.isFerie?'#ffc107':'var(--text)')+'">'+nomJ+' '+d.getDate()+'</b>';
+      var ps = j.svc.heurePS||'—';
+      var fs = j.svc.heureFS||'—';
+      var repas = (j.svc.indemRepasUnique?'<span style="background:rgba(39,174,96,.2);color:#27ae60;padding:1px 5px;border-radius:3px;font-size:10px;margin-right:3px">10€</span>':'')
+                + (j.svc.indemSpeciale?'<span style="background:rgba(245,158,11,.2);color:#f59e0b;padding:1px 5px;border-radius:3px;font-size:10px">5€</span>':'');
+      var prime = (j.isDim?'<span style="color:#e879f9;font-size:10px">Dim 50€</span>':'')
+                + (j.isFerie?'<span style="color:#ffc107;font-size:10px"> Férié 50€</span>':'');
+      html += '<tr style="border-top:1px solid rgba(255,255,255,.04)">';
+      html += '<td style="padding:6px 10px">'+dateLabel+'</td>';
+      html += '<td style="padding:6px 10px;font-weight:700;color:var(--accent)">Svc '+j.svc.num+'</td>';
+      html += '<td style="padding:6px 10px;color:var(--muted)">'+ps+'→'+fs+'</td>';
+      html += '<td style="padding:6px 10px;font-weight:700;color:#00d4ff">'+minToH(j.dureeMin)+'</td>';
+      html += '<td style="padding:6px 10px;color:#7c3aed">'+minToH(j.nuitMin)+'</td>';
+      html += '<td style="padding:6px 10px">'+repas+'</td>';
+      html += '<td style="padding:6px 10px">'+prime+'</td>';
+      html += '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+  } else {
+    html += '<div style="text-align:center;color:var(--muted);padding:30px;font-size:13px">Aucun service trouvé pour '+label+'<br><span style="font-size:11px">Assigne des services dans le Planning</span></div>';
+  }
+
+  document.getElementById('recap-content').innerHTML = html;
+}
+
+function recapCard(icon, label, value, color) {
+  return '<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px 14px">'
+    +'<div style="font-size:11px;color:var(--muted);margin-bottom:4px">'+icon+' '+label+'</div>'
+    +'<div style="font-size:16px;font-weight:700;color:'+color+'">'+value+'</div>'
+    +'</div>';
+}
 
 // ══════════════════════════════════════════════════════
 // PREVIEW PLANNING MULTI-JOURS
