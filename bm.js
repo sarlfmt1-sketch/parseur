@@ -37,11 +37,10 @@ var mm=('0'+mois).slice(-2);
 var html=jours.map(function(j){
   var dd=('0'+j.n).slice(-2);
   var dateStr=annee+'-'+mm+'-'+dd;
-  var col=j.past?'#333':j.s?'#00d4ff':'#555';
-  var txtCol=j.past?'#444':j.s?'#00d4ff':'#888';
+  var col=j.past?'#444':j.s?'#00d4ff':'#555';
+  var txtCol=j.past?'#666':j.s?'#00d4ff':'#888';
   var checked=j.s&&!j.past?'checked':'';
-  var disabled=j.past?'disabled':'';
-  return '<label style="display:inline-flex;align-items:center;gap:3px;margin:3px;border:1px solid '+col+';border-radius:5px;padding:5px 8px;cursor:'+(j.past?'not-allowed':'pointer')+';font-size:11px;color:'+txtCol+';opacity:'+(j.past?'0.35':'1')+'"><input type=checkbox value="'+dateStr+'" '+checked+' '+disabled+' style="accent-color:#00d4ff"> <span><b>'+j.nom+'</b> '+dd+'/'+mm+'</span></label>';
+  return '<label style="display:inline-flex;align-items:center;gap:3px;margin:3px;border:1px solid '+col+';border-radius:5px;padding:5px 8px;cursor:pointer;font-size:11px;color:'+txtCol+';opacity:'+(j.past?'0.5':'1')+'"><input type=checkbox value="'+dateStr+'" '+checked+' style="accent-color:#00d4ff"> <span><b>'+j.nom+'</b> '+dd+'/'+mm+'</span></label>';
 }).join('');
 var ov=document.createElement('div');
 ov.id='clv';
@@ -52,6 +51,13 @@ ov.innerHTML='<div style="background:#1a1a2e;border:2px solid #00d4ff;border-rad
   +'<div style="display:flex;gap:6px;margin:10px 0">'
   +'<button onclick="document.querySelectorAll(\'#clj input\').forEach(function(c){c.checked=true})" style="background:rgba(0,212,255,.1);border:1px solid #00d4ff;color:#00d4ff;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:11px">Tout</button>'
   +'<button onclick="document.querySelectorAll(\'#clj input\').forEach(function(c){c.checked=false})" style="background:rgba(255,255,255,.05);border:1px solid #555;color:#888;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:11px">Aucun</button>'
+  +'</div>'
+  +'<div style="margin:8px 0;padding:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px">'
+  +'<div style="font-size:11px;color:#9ca3af;margin-bottom:6px">Mode import :</div>'
+  +'<div style="display:flex;gap:6px">'
+  +'<label style="flex:1;display:flex;align-items:center;gap:5px;border:1px solid #00d4ff;border-radius:6px;padding:6px 8px;cursor:pointer;background:rgba(0,212,255,.1)"><input type=radio name=clmode value=planning checked style="accent-color:#00d4ff"><span style="font-size:11px;color:#00d4ff"><b>Planning</b><br><span style="font-size:10px;color:#6b7280">Assigner au planning</span></span></label>'
+  +'<label style="flex:1;display:flex;align-items:center;gap:5px;border:1px solid #555;border-radius:6px;padding:6px 8px;cursor:pointer;background:rgba(255,255,255,.03)"><input type=radio name=clmode value=base style="accent-color:#f59e0b"><span style="font-size:11px;color:#888"><b>Base seule</b><br><span style="font-size:10px;color:#6b7280">Enrichir sans planning</span></span></label>'
+  +'</div>'
   +'</div>'
   +'<div id=cls style="font-size:12px;color:#9ca3af;margin:8px 0;min-height:18px"></div>'
   +'<div id=clp style="background:#0d1117;border-radius:5px;padding:6px;font-size:10px;color:#6b7280;max-height:80px;overflow-y:auto;display:none;margin-bottom:8px;font-family:monospace"></div>'
@@ -83,32 +89,20 @@ async function gt(date){
     }
   }
 
-  // Extraire PS et FS
-  // PS = premier bloc dont le titre contient "PS >>"
-  // FS = dernier bloc dont le titre contient "FS >>" + 5 minutes (temps retour dépôt)
-  var heurePS=null, heureFSraw=null;
+  // Extraire PS et FS depuis les titres des collapsibles
+  var heurePS=null, heureFS=null;
   var allEls=doc.querySelectorAll('[idserv]');
   for(var pi=0;pi<allEls.length;pi++){
     var pH=allEls[pi].innerHTML;
-    var titleM=pH.match(/^[^<]*?(\d{2}:\d{2})\s*-\s*(PS|FS)\s*>>/);
-    if(!titleM){
-      // chercher dans le texte visible du bloc
-      var textContent=allEls[pi].textContent||'';
-      var tmPS=textContent.match(/(\d{2}:\d{2})\s*-\s*PS\s*>>/);
-      var tmFS=textContent.match(/(\d{2}:\d{2})\s*-\s*FS\s*>>/);
-      if(tmPS&&!heurePS)heurePS=tmPS[1];
-      if(tmFS)heureFSraw=tmFS[1];
-    } else {
-      if(titleM[2]==='PS'&&!heurePS)heurePS=titleM[1];
-      if(titleM[2]==='FS')heureFSraw=titleM[1];
-    }
-  }
-  // Ajouter 5 minutes à l'heure FS brute
-  var heureFS=null;
-  if(heureFSraw){
-    var fsp=heureFSraw.split(':');
-    var fsmin=parseInt(fsp[0])*60+parseInt(fsp[1])+5;
-    heureFS=('0'+Math.floor(fsmin/60)).slice(-2)+':'+('0'+(fsmin%60)).slice(-2);
+    // PS : heure dans le titre "HH:MM - PS >>"
+    if(!heurePS){var psM=pH.match(/([\d]{2}:[\d]{2})\s*-\s*PS\s*>>/);if(psM)heurePS=psM[1];}
+    // FS : heure dans le titre "HH:MM - FS >>" + 5 minutes
+    if(!heureFS){var fsM=pH.match(/([\d]{2}:[\d]{2})\s*-\s*FS\s*>>/);if(fsM){
+      var fp=fsM[1].split(':').map(Number);
+      var fm=fp[0]*60+fp[1]+5;
+      if(fm>=1440)fm-=1440;
+      heureFS=('0'+Math.floor(fm/60)).slice(-2)+':'+('0'+(fm%60)).slice(-2);
+    }}
   }
 
   var els=doc.querySelectorAll('[idserv]');
@@ -178,7 +172,9 @@ document.getElementById('clbtn').onclick=async function(){
   }
   if(!pl.length){ss('Aucun trajet!');btn.disabled=false;btn.textContent='Importer';return;}
   ss(pl.length+' jour(s) - envoi...');
-  var data=JSON.stringify({planning:pl,ts:Date.now()});
+  var modeEl=document.querySelector('input[name=clmode]:checked');
+  var mode=modeEl?modeEl.value:'planning';
+  var data=JSON.stringify({planning:pl,ts:Date.now(),mode:mode});
   var w=window.open('https://sarlfmt1-sketch.github.io/parseur/?fso=1','_blank');
   var snd=null,done=false;
   window.addEventListener('message',function(e){
