@@ -54,10 +54,11 @@ ov.innerHTML='<div style="background:#1a1a2e;border:2px solid #00d4ff;border-rad
   +'</div>'
   +'<div style="margin:8px 0;padding:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:6px">'
   +'<div style="font-size:11px;color:#9ca3af;margin-bottom:6px">Mode import :</div>'
-  +'<div style="display:flex;gap:6px">'
+  +'<div style="display:flex;gap:6px;margin-bottom:6px">'
   +'<label style="flex:1;display:flex;align-items:center;gap:5px;border:1px solid #00d4ff;border-radius:6px;padding:6px 8px;cursor:pointer;background:rgba(0,212,255,.1)"><input type=radio name=clmode value=planning checked style="accent-color:#00d4ff"><span style="font-size:11px;color:#00d4ff"><b>Planning</b><br><span style="font-size:10px;color:#6b7280">Assigner au planning</span></span></label>'
   +'<label style="flex:1;display:flex;align-items:center;gap:5px;border:1px solid #555;border-radius:6px;padding:6px 8px;cursor:pointer;background:rgba(255,255,255,.03)"><input type=radio name=clmode value=base style="accent-color:#f59e0b"><span style="font-size:11px;color:#888"><b>Base seule</b><br><span style="font-size:10px;color:#6b7280">Enrichir sans planning</span></span></label>'
   +'</div>'
+  +'<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:#fbbf24"><input type=checkbox id=clEte style="accent-color:#fbbf24"> <span>☀️ <b>Service été</b> — ajouter "E" au numéro (ex: 106 → 106E)</span></label>'
   +'</div>'
   +'<div id=cls style="font-size:12px;color:#9ca3af;margin:8px 0;min-height:18px"></div>'
   +'<div id=clp style="background:#0d1117;border-radius:5px;padding:6px;font-size:10px;color:#6b7280;max-height:80px;overflow-y:auto;display:none;margin-bottom:8px;font-family:monospace"></div>'
@@ -174,7 +175,8 @@ document.getElementById('clbtn').onclick=async function(){
   ss(pl.length+' jour(s) - envoi...');
   var modeEl=document.querySelector('input[name=clmode]:checked');
   var mode=modeEl?modeEl.value:'planning';
-  var data=JSON.stringify({planning:pl,ts:Date.now(),mode:mode});
+  var ete=document.getElementById('clEte')&&document.getElementById('clEte').checked;
+  var data=JSON.stringify({planning:pl,ts:Date.now(),mode:mode,ete:ete});
   var w=window.open('https://sarlfmt1-sketch.github.io/parseur/?fso=1','_blank');
   var snd=null,done=false;
   window.addEventListener('message',function(e){
