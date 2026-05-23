@@ -3334,6 +3334,18 @@ function recapRender() {
     var svc = svcs.find(function(s){return s.num===planVal;});
     if(!svc) continue;
 
+    // Éviter les doublons : si même service que la veille (service de nuit), ignorer
+    var dejaConte = jours.some(function(j){ return j.svc.num === svc.num; });
+    if(dejaConte) {
+      // Quand même afficher le jour dans le tableau mais sans recompter les heures/primes
+      var dow2 = date.getDay();
+      jours.push({
+        date:key, dow:dow2, isDim:dow2===0, isFerie:recapIsFerie(date),
+        svc:svc, dureeMin:0, nuitMin:0, doublon:true
+      });
+      continue;
+    }
+
     var dow = date.getDay();
     var isDim = dow===0;
     var isFerie = recapIsFerie(date);
@@ -3405,9 +3417,25 @@ function recapRender() {
     jours.forEach(function(j) {
       var d = new Date(j.date+'T12:00:00');
       var nomJ = JNOMS[j.dow];
-      var dateLabel = '<b style="color:'+(j.isDim?'#e879f9':j.isFerie?'#ffc107':'var(--text)')+'">'+nomJ+' '+d.getDate()+'</b>';
+      var dateColor = j.doublon?'#444':j.isDim?'#e879f9':j.isFerie?'#ffc107':'var(--text)';
+      var dateLabel = '<b style="color:'+dateColor+'">'+nomJ+' '+d.getDate()+'</b>';
       var ps = j.svc.heurePS||'—';
       var fs = j.svc.heureFS||'—';
+
+      if(j.doublon) {
+        // Jour de nuit dépassant minuit — afficher en grisé, pas de repas/prime redoublée
+        html += '<tr style="border-top:1px solid rgba(255,255,255,.04);opacity:0.4">';
+        html += '<td style="padding:6px 10px">'+dateLabel+' <span style="font-size:10px;color:#555">↑ nuit</span></td>';
+        html += '<td style="padding:6px 10px;color:#555">Svc '+j.svc.num+'</td>';
+        html += '<td style="padding:6px 10px;color:#555">—</td>';
+        html += '<td style="padding:6px 10px;color:#555">—</td>';
+        html += '<td style="padding:6px 10px;color:#555">—</td>';
+        html += '<td style="padding:6px 10px"></td>';
+        html += '<td style="padding:6px 10px"></td>';
+        html += '</tr>';
+        return;
+      }
+
       var repas = (j.svc.indemRepasUnique?'<span style="background:rgba(39,174,96,.2);color:#27ae60;padding:1px 5px;border-radius:3px;font-size:10px;margin-right:3px">10€</span>':'')
                 + (j.svc.indemSpeciale?'<span style="background:rgba(245,158,11,.2);color:#f59e0b;padding:1px 5px;border-radius:3px;font-size:10px">5€</span>':'');
       var prime = (j.isDim?'<span style="color:#e879f9;font-size:10px">Dim 50€</span>':'')
