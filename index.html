@@ -79,7 +79,7 @@ textarea { width:100%; background:#0d1117; border:1px solid var(--border); borde
 .add-panel .row > div { flex:1; }
 .editor-header { display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
 .editor-actions { display:flex; gap:8px; margin-top:12px; }
-.svc-list-wrap { background:var(--card); border:1px solid var(--border); border-radius:10px; overflow-y:auto; margin-bottom:16px; max-height:520px; }
+.svc-list-wrap { background:var(--card); border:1px solid var(--border); border-radius:10px; overflow-y:auto; margin-bottom:16px; max-height:480px; scroll-behavior:smooth; }
 .svc-item { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-bottom:1px solid var(--border); font-size:13px; gap:8px; }
 .svc-item:last-child { border-bottom:none; }
 .svc-item-num { font-weight:700; color:var(--accent); min-width:55px; }
@@ -242,7 +242,7 @@ Ex:
       <input type="file" id="import-file-parseur" accept=".json" style="display:none" onchange="importJSON(event)">
       <span id="svc-count" style="font-size:12px;color:var(--muted);margin-left:auto"></span>
     </div>
-    <div id="svc-list-section" style="max-height:calc(100vh - 280px);overflow-y:auto;border-radius:10px"></div>
+    <div id="svc-list-section"></div>
     <div id="parse-panel" style="display:none">
       <textarea id="ineo-text" rows="14" placeholder="Collez votre feuille INEO ici..."></textarea>
       <button class="btn btn-go" onclick="runParse()">⚡ Analyser la feuille</button>
