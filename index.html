@@ -2553,6 +2553,12 @@ function renderSvcList() {
       return `<div class="svc-item">
         <span class="svc-item-num">Svc ${s.num}</span>
         <span class="svc-item-lines">${lines} ${depot ? '<span style="color:var(--muted);font-size:10px">· '+depot+'</span>' : ''}</span>
+        <select onchange="moveSvc(${realIdx},this.value);this.value=''" style="background:#0d1117;border:1px solid var(--border);border-radius:5px;color:var(--muted);font-size:11px;padding:2px 4px;cursor:pointer" title="Déplacer vers...">
+          <option value="">↕️</option>
+          <option value="semaine" ${s.jour==='semaine'?'disabled':''}>📅 Semaine</option>
+          <option value="samedi" ${s.jour==='samedi'?'disabled':''}>🟠 Samedi</option>
+          <option value="dimanche" ${s.jour==='dimanche'?'disabled':''}>🟣 Dimanche</option>
+        </select>
         <button class="svc-item-edit" onclick="editSvc(${realIdx})" title="Modifier">✏️</button>
         <button class="svc-item-del" onclick="deleteSvc(${realIdx})" title="Supprimer">✕</button>
       </div>`;
@@ -2875,6 +2881,16 @@ function deleteStop(ti, si) {
 }
 
 // ── Éditer un service enregistré ─────────────────────────────────
+function moveSvc(idx, newJour) {
+  if (!newJour) return;
+  const svcs = loadServices();
+  if (!svcs[idx]) return;
+  svcs[idx].jour = newJour;
+  saveServices(svcs);
+  renderSvcList();
+  toast('✅ Svc ' + svcs[idx].num + ' déplacé en ' + newJour);
+}
+
 function editSvc(idx) {
   const svcs = loadServices();
   const s = svcs[idx];
