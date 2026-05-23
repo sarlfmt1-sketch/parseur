@@ -3445,6 +3445,8 @@ function previewBuildSvc(jour) {
   if (diff < 0) diff += 1440;
   var dp = jour.date.split('-');
   var numAuto = jour.numSvc || (dp[2] + dp[1]);
+  // Appliquer suffixe été
+  if (jour.ete && numAuto && !String(numAuto).endsWith('E')) numAuto = numAuto + 'E';
 
   // Heures PS/FS — priorité aux vraies heures PS/FS, sinon premier/dernier trajet
   var heurePS = jour.heurePS || _fcTrips[0].depart;
@@ -3623,6 +3625,10 @@ function previewCancel() {
 
       // MODE PLANNING MULTI-JOURS -> PREVIEW
       if (data.planning && data.planning.length) {
+        // Appliquer suffixe été si coché
+        if (data.ete) {
+          data.planning.forEach(function(jour) { jour.ete = true; });
+        }
         previewShowPlanning(data.planning, data.mode || 'planning');
       }
       // MODE JOUR UNIQUE (ancien bookmarklet)
