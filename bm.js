@@ -34,20 +34,36 @@ for(var i=0;i<days.length;i++){
   }
 }
 var mm=('0'+mois).slice(-2);
-var html=jours.map(function(j){
+// Grille calendrier : Lun=0 ... Dim=6
+var colHeaders='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px">'
+  +['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(function(n,i){
+    var wkCol=i>=5?'#f59e0b':'#00d4ff';
+    return '<div style="text-align:center;font-size:10px;font-weight:700;color:'+wkCol+';padding:2px 0;opacity:0.7">'+n+'</div>';
+  }).join('')+'</div>';
+// Calculer l'offset de la 1ère case (lundi=0)
+var firstDate=new Date(annee,mois-1,1);
+var firstDow=firstDate.getDay(); // 0=dim
+var offset=(firstDow===0)?6:firstDow-1; // décalage lundi-based
+var cells=[];
+for(var c=0;c<offset;c++)cells.push('<div></div>');
+jours.forEach(function(j){
   var dd=('0'+j.n).slice(-2);
   var dateStr=annee+'-'+mm+'-'+dd;
-  var col=j.past?'#444':j.s?'#00d4ff':'#555';
-  var txtCol=j.past?'#666':j.s?'#00d4ff':'#888';
+  var dow=new Date(annee,mois-1,j.n).getDay(); // 0=dim
+  var isWknd=dow===0||dow===6;
+  var col=j.past?'#333':j.s?'#00d4ff':isWknd?'#f59e0b33':'#383850';
+  var bdr=j.past?'#3a3a3a':j.s?'#00d4ff':isWknd?'#f59e0b55':'#4a4a6a';
+  var txtCol=j.past?'#555':j.s?'#00d4ff':isWknd?'#f59e0b':'#777';
   var checked=j.s&&!j.past?'checked':'';
-  return '<label style="display:inline-flex;align-items:center;gap:3px;margin:3px;border:1px solid '+col+';border-radius:5px;padding:5px 8px;cursor:pointer;font-size:11px;color:'+txtCol+';opacity:'+(j.past?'0.5':'1')+'"><input type=checkbox value="'+dateStr+'" '+checked+' style="accent-color:#00d4ff"> <span><b>'+j.nom+'</b> '+dd+'/'+mm+'</span></label>';
-}).join('');
+  cells.push('<label style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1px solid '+bdr+';border-radius:5px;padding:4px 2px;cursor:pointer;font-size:10px;color:'+txtCol+';background:'+col+'22;opacity:'+(j.past?'0.45':'1')+'"><input type=checkbox value="'+dateStr+'" '+checked+' style="accent-color:#00d4ff;margin:0;width:12px;height:12px"> <span style="font-weight:700;line-height:1.2">'+dd+'</span></label>');
+});
+var html=colHeaders+'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">'+cells.join('')+'</div>';
 var ov=document.createElement('div');
 ov.id='clv';
 ov.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.88);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:sans-serif';
 ov.innerHTML='<div style="background:#1a1a2e;border:2px solid #00d4ff;border-radius:12px;padding:20px;color:#fff;max-width:460px;width:92%;max-height:90vh;overflow-y:auto">'
   +'<div style="font-size:17px;font-weight:700;color:#00d4ff;margin-bottom:12px">ChronoLigne - '+h4.textContent.trim()+'</div>'
-  +'<div id=clj style="display:flex;flex-wrap:wrap">'+html+'</div>'
+  +'<div id=clj>'+html+'</div>'
   +'<div style="display:flex;gap:6px;margin:10px 0">'
   +'<button onclick="document.querySelectorAll(\'#clj input\').forEach(function(c){c.checked=true})" style="background:rgba(0,212,255,.1);border:1px solid #00d4ff;color:#00d4ff;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:11px">Tout</button>'
   +'<button onclick="document.querySelectorAll(\'#clj input\').forEach(function(c){c.checked=false})" style="background:rgba(255,255,255,.05);border:1px solid #555;color:#888;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:11px">Aucun</button>'
