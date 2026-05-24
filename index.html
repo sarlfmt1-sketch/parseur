@@ -3365,7 +3365,7 @@ function recapRender() {
 
     // Indemnités repas
     if(svc.indemRepasUnique) indemRepasUnique++;
-    if(svc.indemSpeciale) indemSpeciale++;
+    else if(svc.indemSpeciale) indemSpeciale++;
 
     // Primes
     if(isDim) primeDimanche++;
@@ -3436,8 +3436,11 @@ function recapRender() {
         return;
       }
 
-      var repas = (j.svc.indemRepasUnique?'<span style="background:rgba(39,174,96,.2);color:#27ae60;padding:1px 5px;border-radius:3px;font-size:10px;margin-right:3px">10€</span>':'')
-                + (j.svc.indemSpeciale?'<span style="background:rgba(245,158,11,.2);color:#f59e0b;padding:1px 5px;border-radius:3px;font-size:10px">5€</span>':'');
+      var repas = j.svc.indemRepasUnique
+        ? '<span style="background:rgba(39,174,96,.2);color:#27ae60;padding:1px 5px;border-radius:3px;font-size:10px">10€</span>'
+        : j.svc.indemSpeciale
+        ? '<span style="background:rgba(245,158,11,.2);color:#f59e0b;padding:1px 5px;border-radius:3px;font-size:10px">5€</span>'
+        : '';
       var prime = (j.isDim?'<span style="color:#e879f9;font-size:10px">Dim 50€</span>':'')
                 + (j.isFerie?'<span style="color:#ffc107;font-size:10px"> Férié 50€</span>':'');
       html += '<tr style="border-top:1px solid rgba(255,255,255,.04)">';
@@ -3504,15 +3507,12 @@ function previewBuildSvc(jour) {
 
   // Calculer indemnités repas selon les règles
   var indemRepasUnique=false, indemSpeciale=false;
-  var isMatin=psMin<12*60;
-  if(isMatin){
-    if(fsMin>=14*60)indemRepasUnique=true;
-    if(fsMin>=13*60+30)indemSpeciale=true;
-  } else {
-    if(fsMin>=21*60+30||fsMin<6*60)indemRepasUnique=true;
-    if(fsMin>=21*60||fsMin<6*60)indemSpeciale=true;
+  // Repas unique 10€ : fin après 14h00 ou après 21h30
+  if(fsMin>=14*60 || fsMin>=21*60+30 || (fsMin<6*60&&fsMin>=0)) indemRepasUnique=true;
+  // Repas spécial 5€ : PS avant 5h OU fin après 13h30 OU fin après 21h (si pas déjà 10€)
+  if(!indemRepasUnique){
+    if(psMin<5*60 || fsMin>=13*60+30 || fsMin>=21*60) indemSpeciale=true;
   }
-  if(psMin<5*60)indemSpeciale=true;
   return {
     num: numAuto, jour: jourType, date: jour.date,
     depotDepart, depotRetour, heures: diff/60,
