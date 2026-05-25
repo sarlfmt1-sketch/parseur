@@ -3561,7 +3561,7 @@ function previewShowPlanning(planning, mode) {
     return '<div class="preview-day" id="pday-'+idx+'">'
       +'<div class="preview-day-header" onclick="previewToggleDay('+idx+')">'
       +'<div class="preview-day-date">'+dateLabel+'</div>'
-      +'<div class="preview-day-info">'+svc.depotDepart+' → '+svc.depotRetour+' &nbsp; '+lignes+'</div>'
+      +'<div class="preview-day-info">'+(svc.heurePS||svc.depotDepart)+' → '+(svc.heureFS||svc.depotRetour)+' &nbsp; '+lignes+'</div>'
       +'<span class="preview-day-badge">'+svc.trips.length+' trajets</span>'
       +'<span style="color:var(--accent);margin-left:8px;font-size:14px" id="pday-arrow-'+idx+'">▼</span>'
       +'</div>'
@@ -3569,7 +3569,7 @@ function previewShowPlanning(planning, mode) {
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px;background:rgba(0,212,255,.04);border:1px solid rgba(0,212,255,.15);border-radius:6px">'
       +'<span style="font-size:12px;color:var(--accent);font-weight:700;white-space:nowrap">N\u00b0 service :</span>'
       +'<input type="text" id="pday-num-'+idx+'" value="'+svc.num+'" placeholder="Ex: 112" oninput="previewUpdateNum('+idx+',this.value)" style="background:#0d1117;border:1px solid rgba(0,212,255,.3);border-radius:6px;color:#fff;font-size:15px;font-weight:700;padding:6px 10px;width:110px;outline:none">'
-      +'<span style="font-size:11px;color:var(--muted)">'+ svc.depotDepart+' \u2192 '+svc.depotRetour+' &bull; '+svc.trips.length+' trajets</span>'
+      +'<span style="font-size:11px;color:var(--muted)">'+(svc.heurePS||svc.depotDepart)+' \u2192 '+(svc.heureFS||svc.depotRetour)+' &bull; '+svc.trips.length+' trajets</span>'
       +'</div>'
       +tripsHtml
       +'</div>'
