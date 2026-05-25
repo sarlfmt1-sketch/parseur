@@ -34,36 +34,41 @@ for(var i=0;i<days.length;i++){
   }
 }
 var mm=('0'+mois).slice(-2);
-// Grille calendrier : Lun=0 ... Dim=6
-var colHeaders='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px">'
-  +['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(function(n,i){
-    var wkCol=i>=5?'#f59e0b':'#00d4ff';
-    return '<div style="text-align:center;font-size:10px;font-weight:700;color:'+wkCol+';padding:2px 0;opacity:0.7">'+n+'</div>';
-  }).join('')+'</div>';
-// Calculer l'offset de la 1ère case (lundi=0)
-var firstDate=new Date(annee,mois-1,1);
-var firstDow=firstDate.getDay(); // 0=dim
-var offset=(firstDow===0)?6:firstDow-1; // décalage lundi-based
-var cells=[];
-for(var c=0;c<offset;c++)cells.push('<div></div>');
+// Trouver le premier jour de la semaine du 1er du mois
+var premierJour=new Date(annee,mois-1,1).getDay(); // 0=Dim, 1=Lun...
+var decalage=(premierJour+6)%7; // Décalage pour commencer lundi
+var html='<table style="border-collapse:collapse;width:100%"><thead><tr>';
+var joursLabels=['L','M','M','J','V','S','D'];
+joursLabels.forEach(function(l){html+='<th style="text-align:center;font-size:10px;color:#6b7280;padding:2px;width:14.28%">'+l+'</th>';});
+html+='</tr></thead><tbody><tr>';
+// Cases vides au début
+for(var e=0;e<decalage;e++)html+='<td></td>';
+var col=decalage;
 jours.forEach(function(j){
   var dd=('0'+j.n).slice(-2);
   var dateStr=annee+'-'+mm+'-'+dd;
-  var dow=new Date(annee,mois-1,j.n).getDay(); // 0=dim
-  var isWknd=dow===0||dow===6;
-  var col=j.past?'#333':j.s?'#00d4ff':isWknd?'#f59e0b33':'#383850';
-  var bdr=j.past?'#3a3a3a':j.s?'#00d4ff':isWknd?'#f59e0b55':'#4a4a6a';
-  var txtCol=j.past?'#555':j.s?'#00d4ff':isWknd?'#f59e0b':'#777';
+  var col2=j.past?'#444':j.s?'#00d4ff':'#555';
+  var txtCol=j.past?'#666':j.s?'#00d4ff':'#888';
   var checked=j.s&&!j.past?'checked':'';
-  cells.push('<label style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1px solid '+bdr+';border-radius:5px;padding:4px 2px;cursor:pointer;font-size:10px;color:'+txtCol+';background:'+col+'22;opacity:'+(j.past?'0.45':'1')+'"><input type=checkbox value="'+dateStr+'" '+checked+' style="accent-color:#00d4ff;margin:0;width:12px;height:12px"> <span style="font-weight:700;line-height:1.2">'+dd+'</span></label>');
+  var bg=j.s&&!j.past?'rgba(0,212,255,.1)':j.past?'rgba(255,255,255,.02)':'rgba(255,255,255,.03)';
+  html+='<td style="padding:2px;text-align:center">'
+    +'<label style="display:flex;flex-direction:column;align-items:center;gap:1px;border:1px solid '+col2+';border-radius:5px;padding:4px 2px;cursor:pointer;font-size:10px;color:'+txtCol+';opacity:'+(j.past?'0.5':'1')+';background:'+bg+'">'
+    +'<input type=checkbox value="'+dateStr+'" '+checked+' style="accent-color:#00d4ff;margin:0;width:12px;height:12px">'
+    +'<span style="font-size:9px;color:#6b7280">'+j.nom+'</span>'
+    +'<span style="font-weight:700;font-size:11px">'+dd+'</span>'
+    +'</label></td>';
+  col++;
+  if(col%7===0)html+='</tr><tr>';
 });
-var html=colHeaders+'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">'+cells.join('')+'</div>';
+// Cases vides à la fin
+while(col%7!==0){html+='<td></td>';col++;}
+html+='</tr></tbody></table>';
 var ov=document.createElement('div');
 ov.id='clv';
 ov.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.88);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:sans-serif';
 ov.innerHTML='<div style="background:#1a1a2e;border:2px solid #00d4ff;border-radius:12px;padding:20px;color:#fff;max-width:460px;width:92%;max-height:90vh;overflow-y:auto">'
   +'<div style="font-size:17px;font-weight:700;color:#00d4ff;margin-bottom:12px">ChronoLigne - '+h4.textContent.trim()+'</div>'
-  +'<div id=clj>'+html+'</div>'
+  +'<div id=clj style="margin-bottom:4px">'+html+'</div>'
   +'<div style="display:flex;gap:6px;margin:10px 0">'
   +'<button onclick="document.querySelectorAll(\'#clj input\').forEach(function(c){c.checked=true})" style="background:rgba(0,212,255,.1);border:1px solid #00d4ff;color:#00d4ff;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:11px">Tout</button>'
   +'<button onclick="document.querySelectorAll(\'#clj input\').forEach(function(c){c.checked=false})" style="background:rgba(255,255,255,.05);border:1px solid #555;color:#888;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:11px">Aucun</button>'
