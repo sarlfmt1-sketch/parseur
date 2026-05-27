@@ -80,6 +80,14 @@ ov.innerHTML='<div style="background:#1a1a2e;border:2px solid #00d4ff;border-rad
   +'<label style="flex:1;display:flex;align-items:center;gap:5px;border:1px solid #555;border-radius:6px;padding:6px 8px;cursor:pointer;background:rgba(255,255,255,.03)"><input type=radio name=clmode value=base style="accent-color:#f59e0b"><span style="font-size:11px;color:#888"><b>Base seule</b><br><span style="font-size:10px;color:#6b7280">Enrichir sans planning</span></span></label>'
   +'</div>'
   +'<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:#fbbf24"><input type=checkbox id=clEte style="accent-color:#fbbf24"> <span>☀️ <b>Service été</b> — ajouter "E" au numéro (ex: 106 → 106E)</span></label>'
+  +'<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08)">'
+  +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">'
+  +'<span style="font-size:11px;color:#9ca3af">🌙 Seuil continuité nuit :</span>'
+  +'<span style="font-size:11px;font-weight:700;color:#00d4ff" id=clSeuilVal>2h00</span>'
+  +'</div>'
+  +'<input type=range id=clSeuil min=30 max=360 step=15 value=120 style="width:100%;accent-color:#00d4ff;background:transparent;margin:0;height:18px" oninput="var v=parseInt(this.value);document.getElementById(\'clSeuilVal\').textContent=Math.floor(v/60)+\'h\'+(v%60<10?\'0\':\'\')+v%60">'
+  +'<div style="display:flex;justify-content:space-between;font-size:9px;color:#6b7280;margin-top:1px"><span>30min</span><span>Écart max fin↔début trajet nuit</span><span>6h</span></div>'
+  +'</div>'
   +'</div>'
   +'<div id=cls style="font-size:12px;color:#9ca3af;margin:8px 0;min-height:18px"></div>'
   +'<div id=clp style="background:#0d1117;border-radius:5px;padding:6px;font-size:10px;color:#6b7280;max-height:80px;overflow-y:auto;display:none;margin-bottom:8px;font-family:monospace"></div>'
@@ -170,10 +178,14 @@ document.getElementById('clbtn').onclick=async function(){
       var res=await gt(dt);
       var tr=res.trajets;
       var numSvc=res.numSvc;
+      // Détecter si le service déborde sur le lendemain (fin > 22h)
       var hasN=false;
+      var derniereTrajets=0; // heure de fin du dernier trajet en minutes
       for(var k=0;k<tr.length;k++){
         var fin=tr[k].arrets[tr[k].arrets.length-1].heure;
-        if(hm(fin)>=22*60)hasN=true;
+        var finMin=hm(fin);
+        if(finMin>=22*60){hasN=true;}
+        if(finMin>derniereTrajets)derniereTrajets=finMin;
       }
       if(hasN){
         var pt=dt.split('-');
@@ -181,8 +193,25 @@ document.getElementById('clbtn').onclick=async function(){
         d.setDate(d.getDate()+1);
         var nx=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
         var res2=await gt(nx);
-        var nt=res2.trajets.filter(function(t){var dv=hm(t.arrets[0].heure);return dv>=0&&dv<=180;});
-        if(nt.length){tr=tr.concat(nt);lg('   +'+nt.length+' nuit');}
+        // Seuil de continuité configurable (minutes entre fin J et début J+1)
+        var seuilContinuite=document.getElementById('clSeuil')?parseInt(document.getElementById('clSeuil').value)||300:300;
+        var nt=res2.trajets.filter(function(t){
+          var debut=hm(t.arrets[0].heure);
+          // Convertir l'heure de début en minutes "après minuit" pour comparaison
+          // ex: 01:08 = 68min après minuit = 1508min depuis le début de la veille (1440+68)
+          var debutAbs=debut+1440; // +24h pour position absolue après minuit
+          // Ecart entre fin du dernier trajet et début de ce trajet (en tenant compte du passage minuit)
+          var ecart=debutAbs-derniereTrajets;
+          // Critère 1 : départ entre 00h00 et 03h00 (max: seuilContinuite/60h après minuit)
+          var dansFenetre=debut>=0&&debut<=(seuilContinuite);
+          // Critère 2 : continuité temporelle — écart < seuil (pas un nouveau service indépendant)
+          var estContinuite=ecart<=seuilContinuite;
+          if(dansFenetre&&estContinuite){return true;}
+          if(dansFenetre&&!estContinuite){lg('   ⏭ Ignoré (écart '+Math.round(ecart/60*10)/10+'h > seuil): '+t.arrets[0].heure+' '+t.ligne);}
+          return false;
+        });
+        if(nt.length){tr=tr.concat(nt);lg('   +'+nt.length+' nuit (continuité)');}
+        else if(hasN){lg('   ℹ️ Fin tardive mais aucun trajet nuit retenu (écarts trop grands)');}
       }
       if(numSvc)lg('   N service: '+numSvc);
       if(res.heurePS)lg('   PS: '+res.heurePS+' FS: '+(res.heureFS||'?'));
