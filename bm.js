@@ -98,7 +98,6 @@ async function gt(date){
   var r=await fetch('/Home/Services?dateJour='+encodeURIComponent(date),{credentials:'include'});
   var h=await r.text();
   var doc=new DOMParser().parseFromString(h,'text/html');
-  console.log('=== PAGE SERVICES RAW ===', h);
 
   // Extraire numero de service (Groupage)
   var numSvc=null;
@@ -112,26 +111,13 @@ async function gt(date){
     }
   }
 
-  // Extraire PS et FS depuis le texte brut de la page
-  // Format abcplanning : "04:58 - PS >> ..." et "10:28 - FS >> ..."
-  // La FS réelle peut aussi apparaître dans "Fin à HH:MM" si le bloc est déplié
+  // Extraire PS et FS depuis le HTML brut (variable h, pas le DOM parsé)
+  // Dans le HTML les >> sont encodés : "04:58 - PS &gt;&gt;" et "10:28 - FS &gt;&gt;"
   var heurePS=null, heureFS=null;
-  var rawTxt=doc.body?doc.body.innerText||doc.body.textContent:'';
-  var rawHtml=doc.body?doc.body.innerHTML:'';
-  // PS : chercher "HH:MM - PS" dans le texte
-  var psM=rawTxt.match(/(\d{2}:\d{2})\s*-\s*PS/);
-  if(!psM)psM=rawHtml.match(/(\d{2}:\d{2})[^<]{0,10}-[^<]{0,10}PS\s*>>/);
+  var psM=h.match(/(\d{2}:\d{2})\s*-\s*PS\s*&gt;&gt;/);
   if(psM)heurePS=psM[1];
-  // FS réelle : "Fin à HH:MM" si disponible (bloc déplié)
-  var fsFinM=rawTxt.match(/Fin\s+à\s+(\d{2}:\d{2})/);
-  if(fsFinM){heureFS=fsFinM[1];}
-  else{
-    // Sinon heure de la ligne FS elle-même
-    var fsM=rawTxt.match(/(\d{2}:\d{2})\s*-\s*FS/);
-    if(!fsM)fsM=rawHtml.match(/(\d{2}:\d{2})[^<]{0,10}-[^<]{0,10}FS\s*>>/);
-    if(fsM)heureFS=fsM[1];
-  }
-  lg('   [PS/FS brut] PS='+heurePS+' FS='+heureFS);
+  var fsM=h.match(/(\d{2}:\d{2})\s*-\s*FS\s*&gt;&gt;/);
+  if(fsM)heureFS=fsM[1];
 
   var els=doc.querySelectorAll('[idserv]');
   var ids=[];
