@@ -111,15 +111,25 @@ async function gt(date){
     }
   }
 
-  // Extraire PS et FS depuis le HTML brut (variable h, pas le DOM parsé)
-  // Dans le HTML les >> sont encodés : "04:58 - PS &gt;&gt;" et "10:28 - FS &gt;&gt;"
+  // Trouver la position du PS dans le HTML brut
+  // Tout ce qui est avant le PS appartient au service précédent -> on l'ignore
   var heurePS=null, heureFS=null;
-  var psM=h.match(/(\d{2}:\d{2})\s*-\s*PS\s*&gt;&gt;/);
+  var psIdx=h.search(/(\d{2}:\d{2})\s*-\s*PS\s*&gt;&gt;/);
+  var hApresPS = psIdx>=0 ? h.slice(psIdx) : h;
+  // PS : première occurrence après le début du service
+  var psM=hApresPS.match(/(\d{2}:\d{2})\s*-\s*PS\s*&gt;&gt;/);
   if(psM)heurePS=psM[1];
-  var fsM=h.match(/(\d{2}:\d{2})\*?\s*-\s*FS\s*&gt;&gt;/);
+  // FS : chercher après le PS uniquement
+  var fsM=hApresPS.match(/(\d{2}:\d{2})\*?\s*-\s*FS\s*&gt;&gt;/);
   if(fsM){var fp=fsM[1].split(":").map(Number),fm=fp[0]*60+fp[1]+5;if(fm>=1440)fm-=1440;heureFS=("0"+Math.floor(fm/60)).slice(-2)+":"+("0"+(fm%60)).slice(-2);}
-
-  var els=doc.querySelectorAll('[idserv]');
+  // Groupage : chercher aussi après le PS (prendre le bon numéro de service)
+  var numSvcPS=null;
+  var grpM=hApresPS.match(/Groupage\s*:\s*(\d+)/);
+  if(grpM)numSvcPS=grpM[1];
+  if(numSvcPS)numSvc=numSvcPS;
+  // Ne prendre que les idserv situés après le PS dans le HTML
+  var docApresPS=new DOMParser().parseFromString(hApresPS,'text/html');
+  var els=docApresPS.querySelectorAll('[idserv]');
   var ids=[];
   for(var i=0;i<els.length;i++){
     var v=els[i].getAttribute('idserv');
@@ -127,7 +137,7 @@ async function gt(date){
   }
   var tr=[];
   for(var j=0;j<ids.length;j++){
-    var el=doc.querySelector('[idserv="'+ids[j]+'"]');
+    var el=docApresPS.querySelector('[idserv="'+ids[j]+'"]');
     if(!el)continue;
     var hh=el.innerHTML;
     var lm=hh.match(/(\d{4})\s*-\s*[^&]/);
@@ -182,7 +192,7 @@ document.getElementById('clbtn').onclick=async function(){
         }else{lg('   nuit ignoree ('+nx+' deja selectionne)');}
       }
       if(numSvc)lg('   N service: '+numSvc);
-      if(res.heurePS)lg('   PS: '+res.heurePS+' FS: '+(res.heureFS||'?'));
+      lg('   PS: '+res.heurePS+' FS: '+(res.heureFS||'?'));
       pl.push({date:dt,trajets:tr,numSvc:numSvc,heurePS:res.heurePS,heureFS:res.heureFS});
       lg('   OK '+tr.length+' trajets');
     }catch(e){
