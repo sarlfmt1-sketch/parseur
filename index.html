@@ -3484,25 +3484,21 @@ function previewBuildSvc(jour) {
   var dateObj = new Date(jour.date + 'T12:00:00');
   var dow = dateObj.getDay();
   var jourType = dow===0?'dimanche':dow===6?'samedi':'semaine';
-  var depotDepart = _fcTrips[0].depart;
-  var depotRetour = _fcTrips[_fcTrips.length-1].arrivee;
-  var p1 = depotDepart.split(':').map(Number);
-  var p2 = depotRetour.split(':').map(Number);
-  var diff = (p2[0]*60+p2[1]) - (p1[0]*60+p1[1]);
-  if (diff < 0) diff += 1440;
+  // Heures PS/FS : priorité absolue aux vraies heures dépôt transmises par le bookmarklet
+  function toMin(h){var p=h.split(':').map(Number);return p[0]*60+p[1];}
+  var heurePS = jour.heurePS || _fcTrips[0].depart;
+  var heureFS = jour.heureFS || _fcTrips[_fcTrips.length-1].arrivee;
+  // depotDepart/Retour = heures PS/FS (vraies heures dépôt)
+  var depotDepart = heurePS;
+  var depotRetour = heureFS;
   var dp = jour.date.split('-');
   var numAuto = jour.numSvc || (dp[2] + dp[1]);
   // Appliquer suffixe été
   if (jour.ete && numAuto && !String(numAuto).endsWith('E')) numAuto = numAuto + 'E';
-
-  // Heures PS/FS — priorité aux vraies heures PS/FS, sinon premier/dernier trajet
-  var heurePS = jour.heurePS || _fcTrips[0].depart;
-  var heureFS = jour.heureFS || _fcTrips[_fcTrips.length-1].arrivee;
-
-  // Calculer durée de travail PS->FS
-  function toMin(h){var p=h.split(':').map(Number);return p[0]*60+p[1];}
+  // Durée de travail calculée PS->FS (heures dépôt réelles)
   var psMin=toMin(heurePS), fsMin=toMin(heureFS);
   var dureeMin=fsMin-psMin; if(dureeMin<0)dureeMin+=1440;
+  var diff = dureeMin;
   var dureeTravail=Math.floor(dureeMin/60)+'h'+String(dureeMin%60).padStart(2,'0');
 
   // Calculer indemnités repas selon les règles
