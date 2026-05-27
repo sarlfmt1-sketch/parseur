@@ -3484,18 +3484,20 @@ function previewBuildSvc(jour) {
   var dateObj = new Date(jour.date + 'T12:00:00');
   var dow = dateObj.getDay();
   var jourType = dow===0?'dimanche':dow===6?'samedi':'semaine';
-  // Heures PS/FS : priorité absolue aux vraies heures dépôt transmises par le bookmarklet
-  function toMin(h){var p=h.split(':').map(Number);return p[0]*60+p[1];}
-  var heurePS = jour.heurePS || _fcTrips[0].depart;
-  var heureFS = jour.heureFS || _fcTrips[_fcTrips.length-1].arrivee;
-  // depotDepart/Retour = heures PS/FS (vraies heures dépôt)
-  var depotDepart = heurePS;
-  var depotRetour = heureFS;
   var dp = jour.date.split('-');
   var numAuto = jour.numSvc || (dp[2] + dp[1]);
   // Appliquer suffixe été
   if (jour.ete && numAuto && !String(numAuto).endsWith('E')) numAuto = numAuto + 'E';
-  // Durée de travail calculée PS->FS (heures dépôt réelles)
+
+  // PS/FS : uniquement les vraies heures dépôt transmises par le bookmarklet
+  // En dernier recours seulement (bookmarklet ancien sans PS/FS) : 1er/dernier arrêt
+  function toMin(h){var p=h.split(':').map(Number);return p[0]*60+p[1];}
+  var heurePS = jour.heurePS || _fcTrips[0].depart;
+  var heureFS = jour.heureFS || _fcTrips[_fcTrips.length-1].arrivee;
+  // depotDepart/depotRetour = même chose (pas de source alternative)
+  var depotDepart = heurePS;
+  var depotRetour = heureFS;
+  // Durée PS->FS
   var psMin=toMin(heurePS), fsMin=toMin(heureFS);
   var dureeMin=fsMin-psMin; if(dureeMin<0)dureeMin+=1440;
   var diff = dureeMin;
