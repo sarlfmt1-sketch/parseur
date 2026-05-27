@@ -117,7 +117,7 @@ async function gt(date){
   var psM=h.match(/(\d{2}:\d{2})\s*-\s*PS\s*&gt;&gt;/);
   if(psM)heurePS=psM[1];
   var fsM=h.match(/(\d{2}:\d{2})\s*-\s*FS\s*&gt;&gt;/);
-  if(fsM)heureFS=fsM[1];
+  if(fsM){var fp=fsM[1].split(":").map(Number),fm=fp[0]*60+fp[1]+5;if(fm>=1440)fm-=1440;heureFS=("0"+Math.floor(fm/60)).slice(-2)+":"+("0"+(fm%60)).slice(-2);}
 
   var els=doc.querySelectorAll('[idserv]');
   var ids=[];
