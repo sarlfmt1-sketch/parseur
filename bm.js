@@ -112,21 +112,20 @@ async function gt(date){
   }
 
   // Extraire PS et FS
-  // Priorité 1 : texte brut de la page (ex: "Prise de service : 05:30" / "Fin de service : 13:45")
+  // Format réel abcplanning : "04:58 - PS >> COB..." dans le texte des lignes [idserv]
+  // Pour la FS, le détail déployé contient "Fin à HH:MM de ..." — c'est l'heure réelle FS
   var heurePS=null, heureFS=null;
-  var bodyTxt=doc.body?doc.body.innerHTML:'';
-  var psRaw=bodyTxt.match(/[Pp]rise\s+de\s+service\s*[:\-]\s*(\d{2}:\d{2})/);
-  if(psRaw)heurePS=psRaw[1];
-  var fsRaw=bodyTxt.match(/[Ff]in\s+de\s+service\s*[:\-]\s*(\d{2}:\d{2})/);
-  if(fsRaw)heureFS=fsRaw[1];
-  // Priorité 2 : titres collapsibles "[idserv]" contenant "HH:MM - PS >>" / "HH:MM - FS >>"
-  if(!heurePS||!heureFS){
-    var allEls=doc.querySelectorAll('[idserv]');
-    for(var pi=0;pi<allEls.length;pi++){
-      var pH=allEls[pi].innerHTML;
-      if(!heurePS){var psM=pH.match(/([\d]{2}:[\d]{2})\s*-\s*PS\s*>>/);if(psM)heurePS=psM[1];}
-      if(!heureFS){var fsM=pH.match(/([\d]{2}:[\d]{2})\s*-\s*FS\s*>>/);if(fsM)heureFS=fsM[1];}
-    }
+  var fullHtml=doc.body?doc.body.innerHTML:'';
+  // PS : ligne du type "HH:MM - PS >>"
+  var psM=fullHtml.match(/(\d{2}:\d{2})\s*-\s*PS\s*>>/);
+  if(psM)heurePS=psM[1];
+  // FS : chercher d'abord "Fin à HH:MM" dans le détail déplié de la ligne FS
+  var fsFinM=fullHtml.match(/Fin\s+\xE0\s+(\d{2}:\d{2})/);
+  if(fsFinM){heureFS=fsFinM[1];}
+  else{
+    // Fallback : heure de la ligne "HH:MM - FS >>" elle-même (sans ajout de minutes)
+    var fsM=fullHtml.match(/(\d{2}:\d{2})\s*-\s*FS\s*>>/);
+    if(fsM)heureFS=fsM[1];
   }
 
   var els=doc.querySelectorAll('[idserv]');
