@@ -3484,23 +3484,25 @@ function previewBuildSvc(jour) {
   var dateObj = new Date(jour.date + 'T12:00:00');
   var dow = dateObj.getDay();
   var jourType = dow===0?'dimanche':dow===6?'samedi':'semaine';
+  var depotDepart = _fcTrips[0].depart;
+  var depotRetour = _fcTrips[_fcTrips.length-1].arrivee;
+  var p1 = depotDepart.split(':').map(Number);
+  var p2 = depotRetour.split(':').map(Number);
+  var diff = (p2[0]*60+p2[1]) - (p1[0]*60+p1[1]);
+  if (diff < 0) diff += 1440;
   var dp = jour.date.split('-');
   var numAuto = jour.numSvc || (dp[2] + dp[1]);
   // Appliquer suffixe été
   if (jour.ete && numAuto && !String(numAuto).endsWith('E')) numAuto = numAuto + 'E';
 
-  // PS/FS : uniquement les vraies heures dépôt transmises par le bookmarklet
-  // En dernier recours seulement (bookmarklet ancien sans PS/FS) : 1er/dernier arrêt
-  function toMin(h){var p=h.split(':').map(Number);return p[0]*60+p[1];}
+  // Heures PS/FS — priorité aux vraies heures PS/FS, sinon premier/dernier trajet
   var heurePS = jour.heurePS || _fcTrips[0].depart;
   var heureFS = jour.heureFS || _fcTrips[_fcTrips.length-1].arrivee;
-  // depotDepart/depotRetour = même chose (pas de source alternative)
-  var depotDepart = heurePS;
-  var depotRetour = heureFS;
-  // Durée PS->FS
+
+  // Calculer durée de travail PS->FS
+  function toMin(h){var p=h.split(':').map(Number);return p[0]*60+p[1];}
   var psMin=toMin(heurePS), fsMin=toMin(heureFS);
   var dureeMin=fsMin-psMin; if(dureeMin<0)dureeMin+=1440;
-  var diff = dureeMin;
   var dureeTravail=Math.floor(dureeMin/60)+'h'+String(dureeMin%60).padStart(2,'0');
 
   // Calculer indemnités repas selon les règles
@@ -3553,8 +3555,14 @@ function previewShowPlanning(planning, mode) {
     var lignes = svc.trips.map(function(t) {
       return '<span style="background:'+t.lineColor+';color:#fff;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700">'+t.lineNum+'</span>';
     }).join(' ');
-    var tripsHtml = svc.trips.map(function(t) {
-      return '<div class="preview-day-trip"><span style="background:'+t.lineColor+';color:#fff;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700">'+t.lineNum+'</span><span style="color:#e8eaf0">'+t.depart+'→'+t.arrivee+'</span><span style="color:var(--muted);flex:1">'+t.label.split(' - ')[1]+'</span><span style="color:var(--muted)">'+t.stops.length+' arrêts</span></div>';
+    var tripsHtml = svc.trips.map(function(t, ti) {
+      return '<div class="preview-day-trip" id="ptrip-'+idx+'-'+ti+'">'
+        +'<span style="background:'+t.lineColor+';color:#fff;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700">'+t.lineNum+'</span>'
+        +'<span style="color:#e8eaf0">'+t.depart+'→'+t.arrivee+'</span>'
+        +'<span style="color:var(--muted);flex:1">'+t.label.split(' - ')[1]+'</span>'
+        +'<span style="color:var(--muted)">'+t.stops.length+' arrêts</span>'
+        +'<button onclick="previewDeleteTrip('+idx+','+ti+')" style="background:rgba(231,76,60,.15);border:1px solid rgba(231,76,60,.5);color:#e74c3c;border-radius:4px;padding:2px 7px;cursor:pointer;font-size:13px;margin-left:6px;flex-shrink:0" title="Supprimer ce trajet">✕</button>'
+        +'</div>';
     }).join('');
     return '<div class="preview-day" id="pday-'+idx+'">'
       +'<div class="preview-day-header" onclick="previewToggleDay('+idx+')">'
@@ -3592,6 +3600,42 @@ function previewShowPlanning(planning, mode) {
   switchTab('francilite');
   document.getElementById('preview-panel').scrollIntoView({behavior:'smooth'});
   toast(_previewData.length + ' jour(s) prêts — vérifie et enregistre !');
+}
+
+function previewDeleteTrip(dayIdx, tripIdx) {
+  if (!_previewData[dayIdx]) return;
+  _previewData[dayIdx].trips.splice(tripIdx, 1);
+  // Recalculer heures affichées
+  var svc = _previewData[dayIdx];
+  if (svc.trips.length) {
+    // Mettre à jour le badge nombre de trajets
+    var badge = document.querySelector('#pday-'+dayIdx+' .preview-day-badge');
+    if (badge) badge.textContent = svc.trips.length + ' trajets';
+    var info = document.querySelector('#pday-'+dayIdx+' .preview-day-info');
+    var lignes = svc.trips.map(function(t){return '<span style="background:'+t.lineColor+';color:#fff;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700">'+t.lineNum+'</span>';}).join(' ');
+    if (info) info.innerHTML = (svc.heurePS||svc.depotDepart)+' → '+(svc.heureFS||svc.depotRetour)+' &nbsp; '+lignes;
+    var counter = document.querySelector('#pday-trips-'+dayIdx+' span[style*="color:var(--muted)"]');
+    // Supprimer la ligne du DOM
+    var el = document.getElementById('ptrip-'+dayIdx+'-'+tripIdx);
+    if (el) el.remove();
+    // Renuméroter les boutons restants
+    var trips = document.querySelectorAll('#pday-trips-'+dayIdx+' .preview-day-trip');
+    trips.forEach(function(tr, newIdx) {
+      tr.id = 'ptrip-'+dayIdx+'-'+newIdx;
+      var btn = tr.querySelector('button');
+      if (btn) btn.setAttribute('onclick', 'previewDeleteTrip('+dayIdx+','+newIdx+')');
+    });
+    // Mettre à jour le résumé N° service
+    var resume = document.querySelector('#pday-trips-'+dayIdx+' span[style*="font-size:11px"]');
+    if (resume) resume.textContent = (svc.heurePS||svc.depotDepart)+' → '+(svc.heureFS||svc.depotRetour)+' • '+svc.trips.length+' trajets';
+    toast('Trajet supprimé');
+  } else {
+    // Plus de trajets : supprimer le jour entier
+    _previewData.splice(dayIdx, 1);
+    var dayEl = document.getElementById('pday-'+dayIdx);
+    if (dayEl) dayEl.remove();
+    toast('Jour supprimé (plus de trajets)');
+  }
 }
 
 function previewToggleDay(idx) {
