@@ -111,22 +111,26 @@ async function gt(date){
     }
   }
 
-  // Extraire PS et FS
-  // Format réel abcplanning : "04:58 - PS >> COB..." dans le texte des lignes [idserv]
-  // Pour la FS, le détail déployé contient "Fin à HH:MM de ..." — c'est l'heure réelle FS
+  // Extraire PS et FS depuis le texte brut de la page
+  // Format abcplanning : "04:58 - PS >> ..." et "10:28 - FS >> ..."
+  // La FS réelle peut aussi apparaître dans "Fin à HH:MM" si le bloc est déplié
   var heurePS=null, heureFS=null;
-  var fullHtml=doc.body?doc.body.innerHTML:'';
-  // PS : ligne du type "HH:MM - PS >>"
-  var psM=fullHtml.match(/(\d{2}:\d{2})\s*-\s*PS\s*>>/);
+  var rawTxt=doc.body?doc.body.innerText||doc.body.textContent:'';
+  var rawHtml=doc.body?doc.body.innerHTML:'';
+  // PS : chercher "HH:MM - PS" dans le texte
+  var psM=rawTxt.match(/(\d{2}:\d{2})\s*-\s*PS/);
+  if(!psM)psM=rawHtml.match(/(\d{2}:\d{2})[^<]{0,10}-[^<]{0,10}PS\s*>>/);
   if(psM)heurePS=psM[1];
-  // FS : chercher d'abord "Fin à HH:MM" dans le détail déplié de la ligne FS
-  var fsFinM=fullHtml.match(/Fin\s+\xE0\s+(\d{2}:\d{2})/);
+  // FS réelle : "Fin à HH:MM" si disponible (bloc déplié)
+  var fsFinM=rawTxt.match(/Fin\s+à\s+(\d{2}:\d{2})/);
   if(fsFinM){heureFS=fsFinM[1];}
   else{
-    // Fallback : heure de la ligne "HH:MM - FS >>" elle-même (sans ajout de minutes)
-    var fsM=fullHtml.match(/(\d{2}:\d{2})\s*-\s*FS\s*>>/);
+    // Sinon heure de la ligne FS elle-même
+    var fsM=rawTxt.match(/(\d{2}:\d{2})\s*-\s*FS/);
+    if(!fsM)fsM=rawHtml.match(/(\d{2}:\d{2})[^<]{0,10}-[^<]{0,10}FS\s*>>/);
     if(fsM)heureFS=fsM[1];
   }
+  lg('   [PS/FS brut] PS='+heurePS+' FS='+heureFS);
 
   var els=doc.querySelectorAll('[idserv]');
   var ids=[];
