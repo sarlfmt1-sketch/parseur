@@ -98,6 +98,7 @@ async function gt(date){
   var r=await fetch('/Home/Services?dateJour='+encodeURIComponent(date),{credentials:'include'});
   var h=await r.text();
   var doc=new DOMParser().parseFromString(h,'text/html');
+  console.log('=== PAGE SERVICES RAW ===', h);
 
   // Extraire numero de service (Groupage)
   var numSvc=null;
