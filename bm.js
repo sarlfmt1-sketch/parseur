@@ -172,9 +172,14 @@ document.getElementById('clbtn').onclick=async function(){
         var d=new Date(parseInt(pt[0]),parseInt(pt[1])-1,parseInt(pt[2]));
         d.setDate(d.getDate()+1);
         var nx=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
-        var res2=await gt(nx);
-        var nt=res2.trajets.filter(function(t){var dv=hm(t.arrets[0].heure);return dv>=0&&dv<=180;});
-        if(nt.length){tr=tr.concat(nt);lg('   +'+nt.length+' nuit');}
+        // Ne récupérer les trajets nuit que si le jour suivant n'est pas déjà sélectionné
+        var nxDejaSel=false;
+        for(var cs2=document.querySelectorAll('#clj input:checked'),ci=0;ci<cs2.length;ci++){if(cs2[ci].value===nx)nxDejaSel=true;}
+        if(!nxDejaSel){
+          var res2=await gt(nx);
+          var nt=res2.trajets.filter(function(t){var dv=hm(t.arrets[0].heure);return dv>=0&&dv<=180;});
+          if(nt.length){tr=tr.concat(nt);lg('   +'+nt.length+' nuit');}
+        }else{lg('   nuit ignoree ('+nx+' deja selectionne)');}
       }
       if(numSvc)lg('   N service: '+numSvc);
       if(res.heurePS)lg('   PS: '+res.heurePS+' FS: '+(res.heureFS||'?'));
