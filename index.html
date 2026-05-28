@@ -263,6 +263,17 @@ Ex:
       </div>
     </div>
     <div id="result"></div>
+
+    <!-- Panneau config relais widget -->
+    <div style="background:rgba(245,158,11,.04);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:14px;margin-top:14px">
+      <div style="font-size:13px;font-weight:700;color:#f59e0b;margin-bottom:10px">📱 Sync Widget Scriptable</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">URL Google Apps Script (relais Drive) :</div>
+      <input id="relay-url-input" type="text" placeholder="https://script.google.com/macros/s/..." 
+        style="width:100%;background:#0d1117;border:1px solid rgba(245,158,11,.3);border-radius:6px;color:var(--text);font-size:12px;padding:8px 10px;margin-bottom:8px;outline:none"
+        oninput="localStorage.setItem('cl_relay_url',this.value);RELAY_URL=this.value">
+      <button onclick="testRelay()" style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.4);color:#f59e0b;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:700">🔌 Tester la connexion</button>
+      <span id="relay-status" style="font-size:11px;color:var(--muted);margin-left:8px"></span>
+    </div>
   </div>
 </div>
 
@@ -3555,14 +3566,8 @@ function previewShowPlanning(planning, mode) {
     var lignes = svc.trips.map(function(t) {
       return '<span style="background:'+t.lineColor+';color:#fff;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700">'+t.lineNum+'</span>';
     }).join(' ');
-    var tripsHtml = svc.trips.map(function(t, ti) {
-      return '<div class="preview-day-trip" id="ptrip-'+idx+'-'+ti+'">'
-        +'<span style="background:'+t.lineColor+';color:#fff;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700">'+t.lineNum+'</span>'
-        +'<span style="color:#e8eaf0">'+t.depart+'→'+t.arrivee+'</span>'
-        +'<span style="color:var(--muted);flex:1">'+t.label.split(' - ')[1]+'</span>'
-        +'<span style="color:var(--muted)">'+t.stops.length+' arrêts</span>'
-        +'<button onclick="previewDeleteTrip('+idx+','+ti+')" style="background:rgba(231,76,60,.15);border:1px solid rgba(231,76,60,.5);color:#e74c3c;border-radius:4px;padding:2px 7px;cursor:pointer;font-size:13px;margin-left:6px;flex-shrink:0" title="Supprimer ce trajet">✕</button>'
-        +'</div>';
+    var tripsHtml = svc.trips.map(function(t) {
+      return '<div class="preview-day-trip"><span style="background:'+t.lineColor+';color:#fff;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700">'+t.lineNum+'</span><span style="color:#e8eaf0">'+t.depart+'→'+t.arrivee+'</span><span style="color:var(--muted);flex:1">'+t.label.split(' - ')[1]+'</span><span style="color:var(--muted)">'+t.stops.length+' arrêts</span></div>';
     }).join('');
     return '<div class="preview-day" id="pday-'+idx+'">'
       +'<div class="preview-day-header" onclick="previewToggleDay('+idx+')">'
@@ -3602,42 +3607,6 @@ function previewShowPlanning(planning, mode) {
   toast(_previewData.length + ' jour(s) prêts — vérifie et enregistre !');
 }
 
-function previewDeleteTrip(dayIdx, tripIdx) {
-  if (!_previewData[dayIdx]) return;
-  _previewData[dayIdx].trips.splice(tripIdx, 1);
-  // Recalculer heures affichées
-  var svc = _previewData[dayIdx];
-  if (svc.trips.length) {
-    // Mettre à jour le badge nombre de trajets
-    var badge = document.querySelector('#pday-'+dayIdx+' .preview-day-badge');
-    if (badge) badge.textContent = svc.trips.length + ' trajets';
-    var info = document.querySelector('#pday-'+dayIdx+' .preview-day-info');
-    var lignes = svc.trips.map(function(t){return '<span style="background:'+t.lineColor+';color:#fff;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700">'+t.lineNum+'</span>';}).join(' ');
-    if (info) info.innerHTML = (svc.heurePS||svc.depotDepart)+' → '+(svc.heureFS||svc.depotRetour)+' &nbsp; '+lignes;
-    var counter = document.querySelector('#pday-trips-'+dayIdx+' span[style*="color:var(--muted)"]');
-    // Supprimer la ligne du DOM
-    var el = document.getElementById('ptrip-'+dayIdx+'-'+tripIdx);
-    if (el) el.remove();
-    // Renuméroter les boutons restants
-    var trips = document.querySelectorAll('#pday-trips-'+dayIdx+' .preview-day-trip');
-    trips.forEach(function(tr, newIdx) {
-      tr.id = 'ptrip-'+dayIdx+'-'+newIdx;
-      var btn = tr.querySelector('button');
-      if (btn) btn.setAttribute('onclick', 'previewDeleteTrip('+dayIdx+','+newIdx+')');
-    });
-    // Mettre à jour le résumé N° service
-    var resume = document.querySelector('#pday-trips-'+dayIdx+' span[style*="font-size:11px"]');
-    if (resume) resume.textContent = (svc.heurePS||svc.depotDepart)+' → '+(svc.heureFS||svc.depotRetour)+' • '+svc.trips.length+' trajets';
-    toast('Trajet supprimé');
-  } else {
-    // Plus de trajets : supprimer le jour entier
-    _previewData.splice(dayIdx, 1);
-    var dayEl = document.getElementById('pday-'+dayIdx);
-    if (dayEl) dayEl.remove();
-    toast('Jour supprimé (plus de trajets)');
-  }
-}
-
 function previewToggleDay(idx) {
   var trips = document.getElementById('pday-trips-'+idx);
   var arrow = document.getElementById('pday-arrow-'+idx);
@@ -3648,6 +3617,26 @@ function previewToggleDay(idx) {
     trips.style.display = 'block';
     arrow.textContent = '▲';
   }
+}
+
+// URL du relais Google Apps Script pour sync widget
+var RELAY_URL = localStorage.getItem('cl_relay_url') || '';
+var RELAY_SECRET = localStorage.getItem('cl_relay_secret') || 'kiki_bus_2711';
+
+async function relaySyncDrive(svc) {
+  if (!RELAY_URL) return;
+  try {
+    await fetch(RELAY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        secret: RELAY_SECRET,
+        date: svc.date,
+        num: String(svc.num),
+        heurePS: svc.heurePS || svc.depotDepart || ''
+      })
+    });
+  } catch(e) { console.warn('Relay sync failed:', e.message); }
 }
 
 function previewSaveAll() {
@@ -3664,6 +3653,8 @@ function previewSaveAll() {
     if (_previewMode !== 'base' && svc.date) {
       planning[svc.date] = svc.num;
     }
+    // Sync Drive pour le widget
+    relaySyncDrive(svc);
     saved++;
   });
 
@@ -3760,6 +3751,35 @@ function fsoInjectTrajets(trajets) {
 
 
 // ══════════════════════════════════════════════════════
+// ── RELAY WIDGET SYNC ──
+async function testRelay() {
+  var st = document.getElementById('relay-status');
+  if (!RELAY_URL) { st.textContent = '⚠️ URL non configurée'; st.style.color = '#f59e0b'; return; }
+  st.textContent = '⏳ Test...'; st.style.color = '#9ca3af';
+  try {
+    var r = await fetch(RELAY_URL + '?secret=' + RELAY_SECRET);
+    var d = await r.json();
+    if (d.planning !== undefined) {
+      st.textContent = '✅ Connecté !'; st.style.color = '#27ae60';
+    } else {
+      st.textContent = '❌ ' + (d.error || 'Erreur'); st.style.color = '#e74c3c';
+    }
+  } catch(e) {
+    st.textContent = '❌ ' + e.message; st.style.color = '#e74c3c';
+  }
+}
+// Initialiser le champ URL depuis localStorage
+(function() {
+  var saved = localStorage.getItem('cl_relay_url');
+  if (saved) {
+    RELAY_URL = saved;
+    var el = document.getElementById('relay-url-input');
+    if (el) el.value = saved;
+  }
+  var savedSecret = localStorage.getItem('cl_relay_secret');
+  if (savedSecret) RELAY_SECRET = savedSecret;
+})();
+
 // FSO AUTO IMPORT
 // ══════════════════════════════════════════════════════
 function fsoCalcInterval(t1, t2) {
