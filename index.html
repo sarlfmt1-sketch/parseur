@@ -138,6 +138,7 @@ textarea { width:100%; background:#0d1117; border:1px solid var(--border); borde
   <button class="tab-btn" onclick="switchTab('parseur')">⚙️ Parseur</button>
   <button class="tab-btn" onclick="switchTab('planning')">📅 Planning</button>
   <button class="tab-btn" onclick="switchTab('recap')">📊 Récap</button>
+  <button class="tab-btn" onclick="switchTab('service');renderServiceTab()">🚍 Service</button>
 </nav>
 
 <!-- ══════════════════════════ ONGLET RECAP ══════════════════════════ -->
@@ -152,6 +153,13 @@ textarea { width:100%; background:#0d1117; border:1px solid var(--border); borde
       </div>
     </div>
     <div id="recap-content"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════ ONGLET SERVICE ══════════════════════════ -->
+<div id="tab-service" class="tab-pane">
+  <div style="padding:16px 0">
+    <div id="service-tab-content"></div>
   </div>
 </div>
 
@@ -263,17 +271,6 @@ Ex:
       </div>
     </div>
     <div id="result"></div>
-
-    <!-- Panneau config relais widget -->
-    <div style="background:rgba(245,158,11,.04);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:14px;margin-top:14px">
-      <div style="font-size:13px;font-weight:700;color:#f59e0b;margin-bottom:10px">📱 Sync Widget Scriptable</div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">URL Google Apps Script (relais Drive) :</div>
-      <input id="relay-url-input" type="text" placeholder="https://script.google.com/macros/s/..." 
-        style="width:100%;background:#0d1117;border:1px solid rgba(245,158,11,.3);border-radius:6px;color:var(--text);font-size:12px;padding:8px 10px;margin-bottom:8px;outline:none"
-        oninput="localStorage.setItem('cl_relay_url',this.value);RELAY_URL=this.value">
-      <button onclick="testRelay()" style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.4);color:#f59e0b;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:12px;font-weight:700">🔌 Tester la connexion</button>
-      <span id="relay-status" style="font-size:11px;color:var(--muted);margin-left:8px"></span>
-    </div>
   </div>
 </div>
 
@@ -2946,6 +2943,86 @@ renderSvcList();
 // ════════════════════════════════════════════════════════════════
 //  ONGLETS
 // ════════════════════════════════════════════════════════════════
+function renderServiceTab() {
+  var el = document.getElementById('service-tab-content');
+  if (!el) return;
+
+  var planning = parseurLoadPlanning();
+  var svcs = loadServices();
+  var now = new Date();
+  var today = new Date(); today.setHours(0,0,0,0);
+
+  function dk(d) {
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+
+  var JOURS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+  var MOIS  = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+
+  // Chercher aujourd'hui et les 7 prochains jours
+  var html = '';
+  for (var i = 0; i < 8; i++) {
+    var d = new Date(today); d.setDate(today.getDate() + i);
+    var key = dk(d);
+    var val = planning[key];
+    var numSvc = null;
+
+    if (val) {
+      if (typeof val === 'object') numSvc = val.num || null;
+      else if (typeof val === 'string' && val.toLowerCase() !== 'repos') numSvc = val;
+    }
+
+    // Chercher le service correspondant
+    var svc = null;
+    if (numSvc) {
+      svc = svcs.find(function(s) { return String(s.num) === String(numSvc); });
+    }
+
+    var heurePS = svc ? (svc.heurePS || svc.depotDepart || null) : (val && typeof val === 'object' ? val.time : null);
+    var heureFS = svc ? (svc.heureFS || svc.depotRetour || null) : null;
+    var isToday = i === 0;
+    var jourLabel = JOURS[d.getDay()] + ' ' + d.getDate() + ' ' + MOIS[d.getMonth()];
+
+    var isRepos = !numSvc;
+    var borderColor = isToday ? '#00d4ff' : 'rgba(255,255,255,.08)';
+    var bg = isToday ? 'rgba(0,212,255,.06)' : 'rgba(255,255,255,.02)';
+
+    html += '<div style="border:1px solid '+borderColor+';border-radius:10px;padding:14px 16px;margin-bottom:10px;background:'+bg+'">';
+    html += '<div style="font-size:11px;color:'+(isToday?'#00d4ff':'#6b7280')+';font-weight:700;margin-bottom:8px;text-transform:uppercase">'+(isToday?"Auj. — ":"")+jourLabel+'</div>';
+
+    if (isRepos) {
+      html += '<div style="font-size:28px;font-weight:700;color:#6b7280">REPOS</div>';
+    } else {
+      html += '<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">';
+      // Heure PS grande
+      if (heurePS) {
+        html += '<div style="font-size:42px;font-weight:700;color:#f0a500;line-height:1">' + heurePS + '</div>';
+      }
+      // Numéro service
+      html += '<div style="font-size:22px;font-weight:700;color:#e8eaf0">Svc ' + numSvc + '</div>';
+      html += '</div>';
+      // FS si dispo
+      if (heureFS) {
+        html += '<div style="font-size:13px;color:#6b7280;margin-top:6px">Fin de service : <span style="color:#9ca3af;font-weight:600">' + heureFS + '</span></div>';
+      }
+      // Lignes si dispo
+      if (svc && svc.trips && svc.trips.length) {
+        var lignes = svc.trips.map(function(t){return t.lineNum;}).filter(function(v,i,a){return a.indexOf(v)===i;});
+        html += '<div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap">';
+        lignes.forEach(function(l) {
+          var col = svc.trips.find(function(t){return t.lineNum===l;});
+          var bg2 = col ? col.lineColor : '#555';
+          html += '<span style="background:'+bg2+';color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">'+l+'</span>';
+        });
+        html += '</div>';
+      }
+    }
+    html += '</div>';
+  }
+
+  el.innerHTML = html;
+}
+
 function switchTab(name) {
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -3619,26 +3696,6 @@ function previewToggleDay(idx) {
   }
 }
 
-// URL du relais Google Apps Script pour sync widget
-var RELAY_URL = localStorage.getItem('cl_relay_url') || '';
-var RELAY_SECRET = localStorage.getItem('cl_relay_secret') || 'kiki_bus_2711';
-
-async function relaySyncDrive(svc) {
-  if (!RELAY_URL) return;
-  try {
-    await fetch(RELAY_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({
-        secret: RELAY_SECRET,
-        date: svc.date,
-        num: String(svc.num),
-        heurePS: svc.heurePS || svc.depotDepart || ''
-      })
-    });
-  } catch(e) { console.warn('Relay sync failed:', e.message); }
-}
-
 function previewSaveAll() {
   if (!_previewData.length) return;
   var svcs = loadServices();
@@ -3653,8 +3710,6 @@ function previewSaveAll() {
     if (_previewMode !== 'base' && svc.date) {
       planning[svc.date] = svc.num;
     }
-    // Sync Drive pour le widget
-    relaySyncDrive(svc);
     saved++;
   });
 
@@ -3751,35 +3806,6 @@ function fsoInjectTrajets(trajets) {
 
 
 // ══════════════════════════════════════════════════════
-// ── RELAY WIDGET SYNC ──
-async function testRelay() {
-  var st = document.getElementById('relay-status');
-  if (!RELAY_URL) { st.textContent = '⚠️ URL non configurée'; st.style.color = '#f59e0b'; return; }
-  st.textContent = '⏳ Test...'; st.style.color = '#9ca3af';
-  try {
-    var r = await fetch(RELAY_URL + '?secret=' + RELAY_SECRET);
-    var d = await r.json();
-    if (d.planning !== undefined) {
-      st.textContent = '✅ Connecté !'; st.style.color = '#27ae60';
-    } else {
-      st.textContent = '❌ ' + (d.error || 'Erreur'); st.style.color = '#e74c3c';
-    }
-  } catch(e) {
-    st.textContent = '❌ ' + e.message; st.style.color = '#e74c3c';
-  }
-}
-// Initialiser le champ URL depuis localStorage
-(function() {
-  var saved = localStorage.getItem('cl_relay_url');
-  if (saved) {
-    RELAY_URL = saved;
-    var el = document.getElementById('relay-url-input');
-    if (el) el.value = saved;
-  }
-  var savedSecret = localStorage.getItem('cl_relay_secret');
-  if (savedSecret) RELAY_SECRET = savedSecret;
-})();
-
 // FSO AUTO IMPORT
 // ══════════════════════════════════════════════════════
 function fsoCalcInterval(t1, t2) {
