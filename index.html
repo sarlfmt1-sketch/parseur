@@ -3850,7 +3850,7 @@ try { _clChannel = new BroadcastChannel('chronoligne_sync'); } catch(e) {}
 
 // ── Google Drive ──────────────────────────────────────────────────
 const DRIVE_CLIENT_ID = '824903623349-bpd4r6r85g0md1neab4oh5bd6h775ell.apps.googleusercontent.com';
-const DRIVE_SCOPE     = 'https://www.googleapis.com/auth/drive.appdata';
+const DRIVE_SCOPE     = 'https://www.googleapis.com/auth/drive.file';
 const DRIVE_FILE_NAME = 'chronoligne_sync.json';
 let _parseurDriveToken = null;
 
@@ -3884,7 +3884,7 @@ function driveParseurSignIn() {
 
 async function driveParseurGetFileId() {
   const res = await fetch(
-    `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${DRIVE_FILE_NAME}'&fields=files(id)`,
+    `https://www.googleapis.com/drive/v3/files?q=name='${DRIVE_FILE_NAME}'+and+trashed=false&fields=files(id)`,
     { headers: { Authorization: 'Bearer ' + _parseurDriveToken } }
   );
   const data = await res.json();
@@ -3895,15 +3895,33 @@ async function driveParseurUpload() {
   if(!_parseurDriveToken) { driveParseurSignIn(); return; }
   try {
     const svcs = loadServices();
-    const planning = JSON.parse(localStorage.getItem('chronoligne_planning')||'{}');
-    const payload = { services: svcs, planning, updatedAt: new Date().toISOString() };
+    const rawPlanning = JSON.parse(localStorage.getItem('chronoligne_planning')||'{}');
+
+    // Enrichit chaque date avec l'heure de prise de service
+    const enrichedPlanning = {};
+    for (const [date, val] of Object.entries(rawPlanning)) {
+      if (!val || val === 'repos') {
+        enrichedPlanning[date] = { num: val || 'repos', time: null };
+      } else {
+        const numStr = typeof val === 'object' ? val.num : val;
+        const svc = svcs.find(s => String(s.num) === String(numStr));
+        const depot     = svc?.heurePS || svc?.depotDepart;
+        const firstStop = svc?.trips?.[0]?.stops?.[0]?.time?.substring(0, 5);
+        const time = (depot     && depot     !== '00:00' ? depot     : null)
+                  || (firstStop && firstStop !== '00:00' ? firstStop : null)
+                  || null;
+        enrichedPlanning[date] = { num: numStr, time };
+      }
+    }
+
+    const payload = { services: svcs, planning: enrichedPlanning, updatedAt: new Date().toISOString() };
     const json = JSON.stringify(payload);
     const fileId = await driveParseurGetFileId();
     const url = fileId
       ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`
       : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
     const method = fileId ? 'PATCH' : 'POST';
-    const meta = JSON.stringify({ name: DRIVE_FILE_NAME, ...(!fileId && { parents: ['appDataFolder'] }) });
+    const meta = JSON.stringify({ name: DRIVE_FILE_NAME, ...(!fileId && { parents: ['root'] }) });
     const body = new FormData();
     body.append('metadata', new Blob([meta], { type:'application/json' }));
     body.append('file',     new Blob([json], { type:'application/json' }));
@@ -3932,7 +3950,9 @@ async function driveParseurDownload() {
     }
     if(data.planning) {
       let p = JSON.parse(localStorage.getItem('chronoligne_planning')||'{}');
-      Object.assign(p, data.planning);
+      for (const [date, val] of Object.entries(data.planning)) {
+        p[date] = (val && typeof val === 'object') ? (val.num ?? 'repos') : val;
+      }
       localStorage.setItem('chronoligne_planning', JSON.stringify(p));
     }
     parseurRenderPlanning();
