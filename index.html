@@ -3597,13 +3597,12 @@ function previewBuildSvc(jour) {
   var dureeMin=fsMin-psMin; if(dureeMin<0)dureeMin+=1440;
   var dureeTravail=Math.floor(dureeMin/60)+'h'+String(dureeMin%60).padStart(2,'0');
 
-  // Calculer indemnités repas selon les règles
+  // Indemnités repas — source unique : table repas.xlsx via bookmarklet (champ jour.repas)
+  // Ne jamais calculer d'après les heures : seule la table fait foi
   var indemRepasUnique=false, indemSpeciale=false;
-  // Repas unique 10€ : fin après 14h00 ou après 21h30
-  if(fsMin>=14*60 || fsMin>=21*60+30 || (fsMin<6*60&&fsMin>=0)) indemRepasUnique=true;
-  // Repas spécial 5€ : PS avant 5h OU fin après 13h30 OU fin après 21h (si pas déjà 10€)
-  if(!indemRepasUnique){
-    if(psMin<5*60 || fsMin>=13*60+30 || fsMin>=21*60) indemSpeciale=true;
+  if(jour.repas && jour.repas.type){
+    if(jour.repas.type==='Repas Unique') indemRepasUnique=true;
+    else if(jour.repas.type==='Repas Special') indemSpeciale=true;
   }
   return {
     num: numAuto, jour: jourType, date: jour.date,
