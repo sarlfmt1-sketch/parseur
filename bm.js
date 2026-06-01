@@ -204,6 +204,79 @@ document.getElementById('clbtn').onclick=async function(){
   var modeEl=document.querySelector('input[name=clmode]:checked');
   var mode=modeEl?modeEl.value:'planning';
   var ete=document.getElementById('clEte')&&document.getElementById('clEte').checked;
+  // Table prime panier (source: repas.xlsx)
+  var REPAS_TABLE={
+    // Repas Unique = 10€
+    50:'Repas Unique',63:'Repas Unique',66:'Repas Unique',67:'Repas Unique',69:'Repas Unique',
+    70:'Repas Unique',71:'Repas Unique',72:'Repas Unique',74:'Repas Unique',76:'Repas Unique',
+    77:'Repas Unique',78:'Repas Unique',79:'Repas Unique',80:'Repas Unique',81:'Repas Unique',
+    82:'Repas Unique',83:'Repas Unique',84:'Repas Unique',130:'Repas Unique',131:'Repas Unique',
+    132:'Repas Unique',134:'Repas Unique',135:'Repas Unique',136:'Repas Unique',139:'Repas Unique',
+    140:'Repas Unique',144:'Repas Unique',145:'Repas Unique',146:'Repas Unique',149:'Repas Unique',
+    150:'Repas Unique',151:'Repas Unique',152:'Repas Unique',154:'Repas Unique',155:'Repas Unique',
+    156:'Repas Unique',157:'Repas Unique',158:'Repas Unique',159:'Repas Unique',160:'Repas Unique',
+    161:'Repas Unique',162:'Repas Unique',163:'Repas Unique',165:'Repas Unique',166:'Repas Unique',
+    167:'Repas Unique',168:'Repas Unique',169:'Repas Unique',170:'Repas Unique',171:'Repas Unique',
+    172:'Repas Unique',173:'Repas Unique',174:'Repas Unique',175:'Repas Unique',176:'Repas Unique',
+    177:'Repas Unique',178:'Repas Unique',179:'Repas Unique',180:'Repas Unique',181:'Repas Unique',
+    182:'Repas Unique',183:'Repas Unique',184:'Repas Unique',185:'Repas Unique',186:'Repas Unique',
+    // Repas Spécial = 5€
+    1:'Repas Special',2:'Repas Special',3:'Repas Special',4:'Repas Special',5:'Repas Special',
+    6:'Repas Special',7:'Repas Special',8:'Repas Special',9:'Repas Special',10:'Repas Special',
+    11:'Repas Special',12:'Repas Special',13:'Repas Special',14:'Repas Special',15:'Repas Special',
+    16:'Repas Special',17:'Repas Special',18:'Repas Special',19:'Repas Special',20:'Repas Special',
+    21:'Repas Special',22:'Repas Special',23:'Repas Special',24:'Repas Special',25:'Repas Special',
+    28:'Repas Special',29:'Repas Special',34:'Repas Special',35:'Repas Special',40:'Repas Special',
+    46:'Repas Special',48:'Repas Special',49:'Repas Special',51:'Repas Special',52:'Repas Special',
+    53:'Repas Special',54:'Repas Special',55:'Repas Special',56:'Repas Special',57:'Repas Special',
+    58:'Repas Special',59:'Repas Special',60:'Repas Special',61:'Repas Special',64:'Repas Special',
+    65:'Repas Special',68:'Repas Special',73:'Repas Special',85:'Repas Special',86:'Repas Special',
+    106:'Repas Special',109:'Repas Special',111:'Repas Special',117:'Repas Special',120:'Repas Special',
+    121:'Repas Special',123:'Repas Special',124:'Repas Special',129:'Repas Special',138:'Repas Special',
+    141:'Repas Special',143:'Repas Special',147:'Repas Special',164:'Repas Special',
+    // Dimanche — Repas Unique = 10€
+    2013:'Repas Unique',2007:'Repas Unique',2010:'Repas Unique',2014:'Repas Unique',
+    2012:'Repas Unique',2011:'Repas Unique',2017:'Repas Unique',2018:'Repas Unique',
+    2015:'Repas Unique',2008:'Repas Unique',2019:'Repas Unique',2029:'Repas Unique',
+    2030:'Repas Unique',2031:'Repas Unique',2032:'Repas Unique',2034:'Repas Unique',
+    2040:'Repas Unique',2035:'Repas Unique',2037:'Repas Unique',2036:'Repas Unique',
+    2038:'Repas Unique',2039:'Repas Unique',2043:'Repas Unique',2044:'Repas Unique',
+    2041:'Repas Unique',2042:'Repas Unique',
+    // Dimanche — Repas Spécial = 5€
+    2003:'Repas Special',2009:'Repas Special',2004:'Repas Special',2005:'Repas Special',
+    2028:'Repas Special',2026:'Repas Special',2027:'Repas Special',
+    // Samedi — Repas Unique = 10€
+    1022:'Repas Unique',1030:'Repas Unique',1031:'Repas Unique',1032:'Repas Unique',
+    1033:'Repas Unique',1034:'Repas Unique',1035:'Repas Unique',1036:'Repas Unique',
+    1038:'Repas Unique',1039:'Repas Unique',1040:'Repas Unique',1041:'Repas Unique',
+    1042:'Repas Unique',1043:'Repas Unique',1044:'Repas Unique',1045:'Repas Unique',
+    1046:'Repas Unique',1076:'Repas Unique',1077:'Repas Unique',1079:'Repas Unique',
+    1080:'Repas Unique',1082:'Repas Unique',1083:'Repas Unique',1084:'Repas Unique',
+    1085:'Repas Unique',1086:'Repas Unique',1087:'Repas Unique',1088:'Repas Unique',
+    1089:'Repas Unique',1090:'Repas Unique',1091:'Repas Unique',1092:'Repas Unique',
+    1093:'Repas Unique',1094:'Repas Unique',1095:'Repas Unique',1096:'Repas Unique',
+    1097:'Repas Unique',1098:'Repas Unique',1099:'Repas Unique',1100:'Repas Unique',
+    1101:'Repas Unique',1102:'Repas Unique',1103:'Repas Unique',1104:'Repas Unique',
+    1105:'Repas Unique',
+    // Samedi — Repas Spécial = 5€
+    1001:'Repas Special',1002:'Repas Special',1003:'Repas Special',1004:'Repas Special',
+    1005:'Repas Special',1011:'Repas Special',1025:'Repas Special',1028:'Repas Special',
+    1071:'Repas Special',1074:'Repas Special',1075:'Repas Special',1078:'Repas Special',
+    1081:'Repas Special',1106:'Repas Special',1107:'Repas Special',1108:'Repas Special'
+  };
+  var REPAS_PRIX={'Repas Unique':10,'Repas Special':5};
+  // Enrichir chaque jour avec la prime panier
+  for(var pi=0;pi<pl.length;pi++){
+    var svc=pl[pi].numSvc?parseInt(pl[pi].numSvc):null;
+    if(svc&&REPAS_TABLE[svc]){
+      var typeRepas=REPAS_TABLE[svc];
+      pl[pi].repas={type:typeRepas,prix:REPAS_PRIX[typeRepas]};
+      lg('   Repas: '+typeRepas+' ('+REPAS_PRIX[typeRepas]+'€)');
+    }else{
+      pl[pi].repas=null;
+      if(svc)lg('   Repas: service '+svc+' non trouvé dans la table');
+    }
+  }
   var data=JSON.stringify({planning:pl,ts:Date.now(),mode:mode,ete:ete});
   var w=window.open('https://sarlfmt1-sketch.github.io/parseur/?fso=1','_blank');
   var snd=null,done=false;
