@@ -2993,18 +2993,65 @@ function renderServiceTab() {
     if (isRepos) {
       html += '<div style="font-size:28px;font-weight:700;color:#6b7280">REPOS</div>';
     } else {
-      html += '<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">';
-      // Heure PS grande
-      if (heurePS) {
-        html += '<div style="font-size:42px;font-weight:700;color:#f0a500;line-height:1">' + heurePS + '</div>';
+      // Récupérer infos coupure depuis le service
+      var estCoupure = svc && svc.coupure;
+      var heurePS2 = svc ? svc.heurePS2 : null;
+      var heureFS1 = svc ? svc.heureFS1 : null;
+      var heureFS2 = svc ? svc.heureFS2 : null;
+
+      if (estCoupure && heurePS2) {
+        // ── AFFICHAGE SERVICE EN COUPURE ──
+        // Calcul durée coupure
+        function toMin2(h){var p=h.split(':').map(Number);return p[0]*60+p[1];}
+        var dCoupMin = toMin2(heurePS2) - toMin2(heureFS1||heurePS);
+        if(dCoupMin<0) dCoupMin+=1440;
+        var dCoupStr = Math.floor(dCoupMin/60)+'h'+String(dCoupMin%60).padStart(2,'0');
+        // Durée matin
+        var dMatMin = toMin2(heureFS1||heurePS2) - toMin2(heurePS);
+        if(dMatMin<0) dMatMin+=1440;
+        var dMatStr = Math.floor(dMatMin/60)+'h'+String(dMatMin%60).padStart(2,'0');
+        // Durée aprem
+        var dAprMin = toMin2(heureFS2||heureFS) - toMin2(heurePS2);
+        if(dAprMin<0) dAprMin+=1440;
+        var dAprStr = Math.floor(dAprMin/60)+'h'+String(dAprMin%60).padStart(2,'0');
+
+        // Badge coupure
+        html += '<div style="display:inline-flex;align-items:center;gap:5px;background:rgba(245,158,11,.15);border:1px solid #f59e0b;border-radius:5px;padding:2px 8px;font-size:10px;font-weight:700;color:#f59e0b;margin-bottom:8px">✂️ SERVICE EN COUPURE &bull; Svc '+numSvc+'</div>';
+
+        // Partie matin
+        html += '<div style="background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.2);border-radius:8px;padding:10px 12px;margin-bottom:6px">';
+        html += '<div style="font-size:10px;color:#6b7280;font-weight:700;margin-bottom:4px">🌅 MATIN</div>';
+        html += '<div style="display:flex;align-items:baseline;gap:10px">';
+        html += '<div style="font-size:32px;font-weight:700;color:#f0a500;line-height:1">'+heurePS+'</div>';
+        if(heureFS1) html += '<div style="font-size:18px;color:#9ca3af">→ '+heureFS1+'</div>';
+        html += '<div style="font-size:12px;color:#6b7280;margin-left:auto">'+dMatStr+'</div>';
+        html += '</div></div>';
+
+        // Coupure
+        html += '<div style="text-align:center;padding:4px 0;font-size:11px;color:#f59e0b;font-weight:700">✂️ Coupure : '+dCoupStr+'</div>';
+
+        // Partie après-midi
+        html += '<div style="background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:10px 12px;margin-top:6px">';
+        html += '<div style="font-size:10px;color:#6b7280;font-weight:700;margin-bottom:4px">🌆 APRÈS-MIDI</div>';
+        html += '<div style="display:flex;align-items:baseline;gap:10px">';
+        html += '<div style="font-size:32px;font-weight:700;color:#f0a500;line-height:1">'+heurePS2+'</div>';
+        if(heureFS2) html += '<div style="font-size:18px;color:#9ca3af">→ '+heureFS2+'</div>';
+        html += '<div style="font-size:12px;color:#6b7280;margin-left:auto">'+dAprStr+'</div>';
+        html += '</div></div>';
+
+      } else {
+        // ── AFFICHAGE NORMAL ──
+        html += '<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">';
+        if (heurePS) {
+          html += '<div style="font-size:42px;font-weight:700;color:#f0a500;line-height:1">' + heurePS + '</div>';
+        }
+        html += '<div style="font-size:22px;font-weight:700;color:#e8eaf0">Svc ' + numSvc + '</div>';
+        html += '</div>';
+        if (heureFS) {
+          html += '<div style="font-size:13px;color:#6b7280;margin-top:6px">Fin de service : <span style="color:#9ca3af;font-weight:600">' + heureFS + '</span></div>';
+        }
       }
-      // Numéro service
-      html += '<div style="font-size:22px;font-weight:700;color:#e8eaf0">Svc ' + numSvc + '</div>';
-      html += '</div>';
-      // FS si dispo
-      if (heureFS) {
-        html += '<div style="font-size:13px;color:#6b7280;margin-top:6px">Fin de service : <span style="color:#9ca3af;font-weight:600">' + heureFS + '</span></div>';
-      }
+
       // Lignes si dispo
       if (svc && svc.trips && svc.trips.length) {
         var lignes = svc.trips.map(function(t){return t.lineNum;}).filter(function(v,i,a){return a.indexOf(v)===i;});
@@ -3611,6 +3658,10 @@ function previewBuildSvc(jour) {
     dureeTravail: dureeTravail,
     indemRepasUnique: indemRepasUnique,
     indemSpeciale: indemSpeciale,
+    coupure: jour.coupure || false,
+    heurePS2: jour.heurePS2 || null,
+    heureFS1: jour.heureFS1 || null,
+    heureFS2: jour.heureFS2 || null,
     trips: _fcTrips.map(t => ({
       lineNum: t.lineNum||'?', lineColor: t.lineColor, label: t.label,
       depart: t.depart, arrivee: t.arrivee,
