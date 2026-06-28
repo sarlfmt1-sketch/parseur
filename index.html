@@ -3473,8 +3473,11 @@ function recapRender() {
     var svc = svcs.find(function(s){return s.num===planVal;});
     if(!svc) continue;
 
-    // Éviter les doublons : si même service que la veille (service de nuit), ignorer
-    var dejaConte = jours.some(function(j){ return j.svc.num === svc.num; });
+    // Éviter les doublons : seulement si le MÊME service apparaît le jour SUIVANT (service de nuit après minuit)
+    var dateObj2 = new Date(date); dateObj2.setDate(dateObj2.getDate()-1);
+    var keyVeille = dateObj2.getFullYear()+'-'+String(dateObj2.getMonth()+1).padStart(2,'0')+'-'+String(dateObj2.getDate()).padStart(2,'0');
+    var svcVeille = jours.length>0 ? jours[jours.length-1] : null;
+    var dejaConte = svcVeille && svcVeille.svc.num === svc.num && svcVeille.date === keyVeille;
     if(dejaConte) {
       // Quand même afficher le jour dans le tableau mais sans recompter les heures/primes
       var dow2 = date.getDay();
