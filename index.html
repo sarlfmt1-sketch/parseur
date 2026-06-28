@@ -4076,10 +4076,9 @@ function parseurRenderPlanning() {
   let html = '';
   for(let i=0; i<15; i++) {
     const d = new Date(monday); d.setDate(monday.getDate()+i);
-    // Cacher les jours passes
-    if(d < today) continue;
     const key = parseurPlanKey(d);
     const isToday = d.getTime()===today.getTime();
+    const isPast = d < today;
     const ferie = parseurIsFerie(d);
     const dowIdx = d.getDay();
     const jourType = dowIdx===0?'dimanche':dowIdx===6?'samedi':'semaine';
@@ -4088,7 +4087,8 @@ function parseurRenderPlanning() {
     else if(!planning[key]) { const f=svcs.filter(s=>s.jour===jourType); if(f.length===1) svc=f[0]; }
     const isRepos = planning[key]==='repos';
     const border = isToday?'#00d4ff':ferie?'#ffc107':'#30363d';
-    html += `<div style="background:#161b22;border:1px solid ${border};${isRepos?'opacity:.5':''};border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
+    const opacity = isPast ? 'opacity:.45;' : (isRepos?'opacity:.5':'');
+    html += `<div style="background:#161b22;border:1px solid ${border};${opacity};border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
       <div style="min-width:52px;text-align:center">
         <div style="font-size:11px;color:#7d8590;font-weight:700;text-transform:uppercase">${PARSEUR_JOURS_FR[dowIdx]}</div>
         <div style="font-size:22px;font-weight:700;font-family:monospace;color:${isToday?'#00d4ff':'inherit'}">${d.getDate()}</div>
