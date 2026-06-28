@@ -3654,8 +3654,16 @@ function previewBuildSvc(jour) {
 
   // Calculer durée de travail PS->FS
   function toMin(h){var p=h.split(':').map(Number);return p[0]*60+p[1];}
-  var psMin=toMin(heurePS), fsMin=toMin(heureFS);
-  var dureeMin=fsMin-psMin; if(dureeMin<0)dureeMin+=1440;
+  var dureeMin=0;
+  if(jour.coupure && jour.heurePS && jour.heurePS2 && jour.heureFS1 && jour.heureFS2){
+    // Coupure : matin + après-midi sans compter la pause
+    var dMat=toMin(jour.heureFS1)-toMin(jour.heurePS); if(dMat<0)dMat+=1440;
+    var dApr=toMin(jour.heureFS2)-toMin(jour.heurePS2); if(dApr<0)dApr+=1440;
+    dureeMin=dMat+dApr;
+  } else {
+    var psMin=toMin(heurePS), fsMin=toMin(heureFS);
+    dureeMin=fsMin-psMin; if(dureeMin<0)dureeMin+=1440;
+  }
   var dureeTravail=Math.floor(dureeMin/60)+'h'+String(dureeMin%60).padStart(2,'0');
 
   // Indemnités repas — source unique : table repas.xlsx via bookmarklet (champ jour.repas)
@@ -4097,8 +4105,12 @@ function parseurRenderPlanning() {
     if(isRepos) html += `<div style="font-size:13px;color:#7d8590;font-style:italic">🛌 Repos</div>`;
     else if(svc) {
       const lines=(svc.trips||[]).map(t=>`<span style="background:${t.lineColor||'#555'};color:#fff;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:700">${t.lineNum||'?'}</span>`).join(' ');
-      const hours=(svc.heurePS||svc.depotDepart)?`${svc.heurePS||svc.depotDepart}→${svc.heureFS||svc.depotRetour||'?'}`:'';
-      const psfs=svc.heurePS?`<span style="font-size:10px;color:#7d8590">PS ${svc.heurePS} → FS ${svc.heureFS||'?'}</span>`:'';
+      const hours = svc.coupure && svc.heurePS2
+        ? `${svc.heurePS}→${svc.heureFS1||'?'} ✂️ ${svc.heurePS2}→${svc.heureFS2||'?'}`
+        : (svc.heurePS||svc.depotDepart)?`${svc.heurePS||svc.depotDepart}→${svc.heureFS||svc.depotRetour||'?'}`:'';
+      const psfs = svc.coupure && svc.heurePS2
+        ? `<span style="font-size:10px;color:#f59e0b">✂️ PS ${svc.heurePS} FS ${svc.heureFS1||'?'} / PS ${svc.heurePS2} FS ${svc.heureFS2||'?'}</span>`
+        : svc.heurePS?`<span style="font-size:10px;color:#7d8590">PS ${svc.heurePS} → FS ${svc.heureFS||'?'}</span>`:'';
       const duree=svc.dureeTravail?`<span style="font-size:11px;color:#00d4ff;font-weight:700">⏱ ${svc.dureeTravail}</span>`:'';
       const indemU=svc.indemRepasUnique?`<span style="background:rgba(39,174,96,.15);border:1px solid rgba(39,174,96,.4);color:#27ae60;font-size:10px;padding:1px 6px;border-radius:4px">🍽 10€</span>`:'';
       const indemS=svc.indemSpeciale?`<span style="background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.4);color:#f59e0b;font-size:10px;padding:1px 6px;border-radius:4px">🍽 5€</span>`:'';
