@@ -14,15 +14,11 @@ for(var i=0;i<days.length;i++){
   var n=parseInt(days[i].textContent.trim());
   if(!isNaN(n)&&n>0){
     var bg=days[i].style.backgroundColor;
-    // Seulement les jours avec service coloré (bleu clair = Régulier)
-    // Exclure gris (absence/repos) et blanc (pas de service)
     var hasService=false;
     if(bg&&bg!='rgb(255, 255, 255)'&&bg!=''){
-      // Exclure les gris : rgb(128,128,128), rgb(211,211,211), rgb(169,169,169) etc.
       var rgbM=bg.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
       if(rgbM){
         var r=parseInt(rgbM[1]),g=parseInt(rgbM[2]),b=parseInt(rgbM[3]);
-        // Si les 3 canaux sont proches = gris => pas de service
         var isGrey=Math.abs(r-g)<20&&Math.abs(g-b)<20&&Math.abs(r-b)<20;
         if(!isGrey)hasService=true;
       }
@@ -34,14 +30,12 @@ for(var i=0;i<days.length;i++){
   }
 }
 var mm=('0'+mois).slice(-2);
-// Trouver le premier jour de la semaine du 1er du mois
-var premierJour=new Date(annee,mois-1,1).getDay(); // 0=Dim, 1=Lun...
-var decalage=(premierJour+6)%7; // Décalage pour commencer lundi
+var premierJour=new Date(annee,mois-1,1).getDay();
+var decalage=(premierJour+6)%7;
 var html='<table style="border-collapse:collapse;width:100%"><thead><tr>';
 var joursLabels=['L','M','M','J','V','S','D'];
 joursLabels.forEach(function(l){html+='<th style="text-align:center;font-size:10px;color:#6b7280;padding:2px;width:14.28%">'+l+'</th>';});
 html+='</tr></thead><tbody><tr>';
-// Cases vides au début
 for(var e=0;e<decalage;e++)html+='<td></td>';
 var col=decalage;
 jours.forEach(function(j){
@@ -60,7 +54,6 @@ jours.forEach(function(j){
   col++;
   if(col%7===0)html+='</tr><tr>';
 });
-// Cases vides à la fin
 while(col%7!==0){html+='<td></td>';col++;}
 html+='</tr></tbody></table>';
 var ov=document.createElement('div');
@@ -79,7 +72,7 @@ ov.innerHTML='<div style="background:#1a1a2e;border:2px solid #00d4ff;border-rad
   +'<label style="flex:1;display:flex;align-items:center;gap:5px;border:1px solid #00d4ff;border-radius:6px;padding:6px 8px;cursor:pointer;background:rgba(0,212,255,.1)"><input type=radio name=clmode value=planning checked style="accent-color:#00d4ff"><span style="font-size:11px;color:#00d4ff"><b>Planning</b><br><span style="font-size:10px;color:#6b7280">Assigner au planning</span></span></label>'
   +'<label style="flex:1;display:flex;align-items:center;gap:5px;border:1px solid #555;border-radius:6px;padding:6px 8px;cursor:pointer;background:rgba(255,255,255,.03)"><input type=radio name=clmode value=base style="accent-color:#f59e0b"><span style="font-size:11px;color:#888"><b>Base seule</b><br><span style="font-size:10px;color:#6b7280">Enrichir sans planning</span></span></label>'
   +'</div>'
-  +'<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:#fbbf24"><input type=checkbox id=clEte style="accent-color:#fbbf24"> <span>☀️ <b>Service été</b> — ajouter "E" au numéro (ex: 106 → 106E)</span></label>'
+  +'<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:#fbbf24"><input type=checkbox id=clEte style="accent-color:#fbbf24"> <span>&#9728;&#65039; <b>Service \xe9t\xe9</b> &mdash; ajouter "E" au num\xe9ro (ex: 106 &rarr; 106E)</span></label>'
   +'</div>'
   +'<div id=cls style="font-size:12px;color:#9ca3af;margin:8px 0;min-height:18px"></div>'
   +'<div id=clp style="background:#0d1117;border-radius:5px;padding:6px;font-size:10px;color:#6b7280;max-height:80px;overflow-y:auto;display:none;margin-bottom:8px;font-family:monospace"></div>'
@@ -99,7 +92,6 @@ async function gt(date){
   var h=await r.text();
   var doc=new DOMParser().parseFromString(h,'text/html');
 
-  // Extraire numero de service (Groupage)
   var numSvc=null;
   var bTags=doc.querySelectorAll('b');
   for(var bi=0;bi<bTags.length;bi++){
@@ -111,23 +103,32 @@ async function gt(date){
     }
   }
 
-  // Trouver la position du PS dans le HTML brut
-  // Tout ce qui est avant le PS appartient au service précédent -> on l'ignore
-  var heurePS=null, heureFS=null;
+  // ── DETECTION COUPURE : tous les PS et FS ──
+  var tousPS=[], tousFS=[];
+  var rePS=/(\d{2}:\d{2})\s*-\s*PS\s*&gt;&gt;/g;
+  var reFS=/(\d{2}:\d{2})\*?\s*-\s*FS\s*&gt;&gt;/g;
+  var mp, mf;
+  while((mp=rePS.exec(h))!==null) tousPS.push(mp[1]);
+  while((mf=reFS.exec(h))!==null){
+    var fp=mf[1].split(':').map(Number), fm=fp[0]*60+fp[1]+5;
+    if(fm>=1440)fm-=1440;
+    tousFS.push(('0'+Math.floor(fm/60)).slice(-2)+':'+('0'+(fm%60)).slice(-2));
+  }
+
+  var heurePS = tousPS.length>0 ? tousPS[0] : null;
+  var heureFS = tousFS.length>0 ? tousFS[tousFS.length-1] : null;
+  var estCoupure = tousPS.length>1;
+  var heurePS2 = estCoupure ? tousPS[1] : null;
+  var heureFS1 = estCoupure && tousFS.length>1 ? tousFS[0] : null;
+  var heureFS2 = estCoupure ? heureFS : null;
+
   var psIdx=h.search(/(\d{2}:\d{2})\s*-\s*PS\s*&gt;&gt;/);
-  var hApresPS = psIdx>=0 ? h.slice(psIdx) : h;
-  // PS : première occurrence après le début du service
-  var psM=hApresPS.match(/(\d{2}:\d{2})\s*-\s*PS\s*&gt;&gt;/);
-  if(psM)heurePS=psM[1];
-  // FS : chercher après le PS uniquement
-  var fsM=hApresPS.match(/(\d{2}:\d{2})\*?\s*-\s*FS\s*&gt;&gt;/);
-  if(fsM){var fp=fsM[1].split(":").map(Number),fm=fp[0]*60+fp[1]+5;if(fm>=1440)fm-=1440;heureFS=("0"+Math.floor(fm/60)).slice(-2)+":"+("0"+(fm%60)).slice(-2);}
-  // Groupage : chercher aussi après le PS (prendre le bon numéro de service)
+  var hApresPS=psIdx>=0?h.slice(psIdx):h;
   var numSvcPS=null;
   var grpM=hApresPS.match(/Groupage\s*:\s*(\d+)/);
   if(grpM)numSvcPS=grpM[1];
   if(numSvcPS)numSvc=numSvcPS;
-  // Ne prendre que les idserv situés après le PS dans le HTML
+
   var docApresPS=new DOMParser().parseFromString(hApresPS,'text/html');
   var els=docApresPS.querySelectorAll('[idserv]');
   var ids=[];
@@ -154,7 +155,12 @@ async function gt(date){
       if(ar.length>=2)tr.push({ligne:lm[1],arrets:ar});
     }catch(e){}
   }
-  return {trajets:tr, numSvc:numSvc, heurePS:heurePS, heureFS:heureFS};
+  return {
+    trajets:tr, numSvc:numSvc,
+    heurePS:heurePS, heureFS:heureFS,
+    coupure:estCoupure,
+    heurePS2:heurePS2, heureFS1:heureFS1, heureFS2:heureFS2
+  };
 }
 
 document.getElementById('clbtn').onclick=async function(){
@@ -182,7 +188,6 @@ document.getElementById('clbtn').onclick=async function(){
         var d=new Date(parseInt(pt[0]),parseInt(pt[1])-1,parseInt(pt[2]));
         d.setDate(d.getDate()+1);
         var nx=d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
-        // Ne récupérer les trajets nuit que si le jour suivant n'est pas déjà sélectionné
         var nxDejaSel=false;
         for(var cs2=document.querySelectorAll('#clj input:checked'),ci=0;ci<cs2.length;ci++){if(cs2[ci].value===nx)nxDejaSel=true;}
         if(!nxDejaSel){
@@ -192,8 +197,17 @@ document.getElementById('clbtn').onclick=async function(){
         }else{lg('   nuit ignoree ('+nx+' deja selectionne)');}
       }
       if(numSvc)lg('   N service: '+numSvc);
-      lg('   PS: '+res.heurePS+' FS: '+(res.heureFS||'?'));
-      pl.push({date:dt,trajets:tr,numSvc:numSvc,heurePS:res.heurePS,heureFS:res.heureFS});
+      if(res.coupure){
+        lg('   COUPURE detectee: matin '+res.heurePS+'>'+res.heureFS1+' / aprem '+res.heurePS2+'>'+res.heureFS2);
+      } else {
+        lg('   PS: '+res.heurePS+' FS: '+(res.heureFS||'?'));
+      }
+      pl.push({
+        date:dt, trajets:tr, numSvc:numSvc,
+        heurePS:res.heurePS, heureFS:res.heureFS,
+        coupure:res.coupure,
+        heurePS2:res.heurePS2, heureFS1:res.heureFS1, heureFS2:res.heureFS2
+      });
       lg('   OK '+tr.length+' trajets');
     }catch(e){
       lg('   ERR: '+e.message);
@@ -204,9 +218,7 @@ document.getElementById('clbtn').onclick=async function(){
   var modeEl=document.querySelector('input[name=clmode]:checked');
   var mode=modeEl?modeEl.value:'planning';
   var ete=document.getElementById('clEte')&&document.getElementById('clEte').checked;
-  // Table prime panier (source: repas.xlsx)
   var REPAS_TABLE={
-    // Repas Unique = 10€
     50:'Repas Unique',63:'Repas Unique',66:'Repas Unique',67:'Repas Unique',69:'Repas Unique',
     70:'Repas Unique',71:'Repas Unique',72:'Repas Unique',74:'Repas Unique',76:'Repas Unique',
     77:'Repas Unique',78:'Repas Unique',79:'Repas Unique',80:'Repas Unique',81:'Repas Unique',
@@ -220,7 +232,6 @@ document.getElementById('clbtn').onclick=async function(){
     172:'Repas Unique',173:'Repas Unique',174:'Repas Unique',175:'Repas Unique',176:'Repas Unique',
     177:'Repas Unique',178:'Repas Unique',179:'Repas Unique',180:'Repas Unique',181:'Repas Unique',
     182:'Repas Unique',183:'Repas Unique',184:'Repas Unique',185:'Repas Unique',186:'Repas Unique',
-    // Repas Spécial = 5€
     1:'Repas Special',2:'Repas Special',3:'Repas Special',4:'Repas Special',5:'Repas Special',
     6:'Repas Special',7:'Repas Special',8:'Repas Special',9:'Repas Special',10:'Repas Special',
     11:'Repas Special',12:'Repas Special',13:'Repas Special',14:'Repas Special',15:'Repas Special',
@@ -234,7 +245,6 @@ document.getElementById('clbtn').onclick=async function(){
     106:'Repas Special',109:'Repas Special',111:'Repas Special',117:'Repas Special',120:'Repas Special',
     121:'Repas Special',123:'Repas Special',124:'Repas Special',129:'Repas Special',138:'Repas Special',
     141:'Repas Special',143:'Repas Special',147:'Repas Special',164:'Repas Special',
-    // Dimanche — Repas Unique = 10€
     2013:'Repas Unique',2007:'Repas Unique',2010:'Repas Unique',2014:'Repas Unique',
     2012:'Repas Unique',2011:'Repas Unique',2017:'Repas Unique',2018:'Repas Unique',
     2015:'Repas Unique',2008:'Repas Unique',2019:'Repas Unique',2029:'Repas Unique',
@@ -242,10 +252,8 @@ document.getElementById('clbtn').onclick=async function(){
     2040:'Repas Unique',2035:'Repas Unique',2037:'Repas Unique',2036:'Repas Unique',
     2038:'Repas Unique',2039:'Repas Unique',2043:'Repas Unique',2044:'Repas Unique',
     2041:'Repas Unique',2042:'Repas Unique',
-    // Dimanche — Repas Spécial = 5€
     2003:'Repas Special',2009:'Repas Special',2004:'Repas Special',2005:'Repas Special',
     2028:'Repas Special',2026:'Repas Special',2027:'Repas Special',
-    // Samedi — Repas Unique = 10€
     1022:'Repas Unique',1030:'Repas Unique',1031:'Repas Unique',1032:'Repas Unique',
     1033:'Repas Unique',1034:'Repas Unique',1035:'Repas Unique',1036:'Repas Unique',
     1038:'Repas Unique',1039:'Repas Unique',1040:'Repas Unique',1041:'Repas Unique',
@@ -258,23 +266,21 @@ document.getElementById('clbtn').onclick=async function(){
     1097:'Repas Unique',1098:'Repas Unique',1099:'Repas Unique',1100:'Repas Unique',
     1101:'Repas Unique',1102:'Repas Unique',1103:'Repas Unique',1104:'Repas Unique',
     1105:'Repas Unique',
-    // Samedi — Repas Spécial = 5€
     1001:'Repas Special',1002:'Repas Special',1003:'Repas Special',1004:'Repas Special',
     1005:'Repas Special',1011:'Repas Special',1025:'Repas Special',1028:'Repas Special',
     1071:'Repas Special',1074:'Repas Special',1075:'Repas Special',1078:'Repas Special',
     1081:'Repas Special',1106:'Repas Special',1107:'Repas Special',1108:'Repas Special'
   };
   var REPAS_PRIX={'Repas Unique':10,'Repas Special':5};
-  // Enrichir chaque jour avec la prime panier
   for(var pi=0;pi<pl.length;pi++){
     var svc=pl[pi].numSvc?parseInt(pl[pi].numSvc):null;
     if(svc&&REPAS_TABLE[svc]){
       var typeRepas=REPAS_TABLE[svc];
       pl[pi].repas={type:typeRepas,prix:REPAS_PRIX[typeRepas]};
-      lg('   Repas: '+typeRepas+' ('+REPAS_PRIX[typeRepas]+'€)');
+      lg('   Repas: '+typeRepas+' ('+REPAS_PRIX[typeRepas]+'EUR)');
     }else{
       pl[pi].repas=null;
-      if(svc)lg('   Repas: service '+svc+' non trouvé dans la table');
+      if(svc)lg('   Repas: service '+svc+' non trouve dans la table');
     }
   }
   var data=JSON.stringify({planning:pl,ts:Date.now(),mode:mode,ete:ete});
