@@ -3491,8 +3491,13 @@ function recapRender() {
 
     // Durée travail
     var dureeMin=0;
-    if(svc.heurePS && svc.heureFS){
-      function toMin(h){var p=h.split(':').map(Number);return p[0]*60+p[1];}
+    function toMin(h){var p=h.split(':').map(Number);return p[0]*60+p[1];}
+    if(svc.coupure && svc.heurePS && svc.heurePS2 && svc.heureFS1 && svc.heureFS2){
+      // Service en coupure : matin + après-midi (sans compter la pause)
+      var dMat=toMin(svc.heureFS1)-toMin(svc.heurePS); if(dMat<0)dMat+=1440;
+      var dApr=toMin(svc.heureFS2)-toMin(svc.heurePS2); if(dApr<0)dApr+=1440;
+      dureeMin=dMat+dApr;
+    } else if(svc.heurePS && svc.heureFS){
       var ps=toMin(svc.heurePS), fs=toMin(svc.heureFS);
       dureeMin=fs-ps; if(dureeMin<0)dureeMin+=1440;
     }
@@ -3560,6 +3565,15 @@ function recapRender() {
       var dateLabel = '<b style="color:'+dateColor+'">'+nomJ+' '+d.getDate()+'</b>';
       var ps = j.svc.heurePS||'—';
       var fs = j.svc.heureFS||'—';
+      var psfsHtml;
+      if(j.svc.coupure && j.svc.heurePS2){
+        psfsHtml = '<span style="color:#f59e0b">✂️</span> '
+          +'<span style="color:var(--muted)">'+ps+'→'+(j.svc.heureFS1||'?')+'</span>'
+          +' <span style="color:#555;font-size:10px">/</span> '
+          +'<span style="color:var(--muted)">'+(j.svc.heurePS2)+'→'+(j.svc.heureFS2||'?')+'</span>';
+      } else {
+        psfsHtml = '<span style="color:var(--muted)">'+ps+'→'+fs+'</span>';
+      }
 
       if(j.doublon) {
         // Jour de nuit dépassant minuit — afficher en grisé, pas de repas/prime redoublée
@@ -3585,7 +3599,7 @@ function recapRender() {
       html += '<tr style="border-top:1px solid rgba(255,255,255,.04)">';
       html += '<td style="padding:6px 10px">'+dateLabel+'</td>';
       html += '<td style="padding:6px 10px;font-weight:700;color:var(--accent)">Svc '+j.svc.num+'</td>';
-      html += '<td style="padding:6px 10px;color:var(--muted)">'+ps+'→'+fs+'</td>';
+      html += '<td style="padding:6px 10px">'+psfsHtml+'</td>';
       html += '<td style="padding:6px 10px;font-weight:700;color:#00d4ff">'+minToH(j.dureeMin)+'</td>';
       html += '<td style="padding:6px 10px;color:#7c3aed">'+minToH(j.nuitMin)+'</td>';
       html += '<td style="padding:6px 10px">'+repas+'</td>';
