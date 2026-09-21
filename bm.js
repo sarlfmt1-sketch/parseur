@@ -301,6 +301,6 @@ document.getElementById('clbtn').onclick=async function(){
     if(snd)clearInterval(snd);
     var oel=document.getElementById('clv');
     if(!done&&oel)document.body.removeChild(oel);
-  },15000);
+  },45000);
 };
 })();
