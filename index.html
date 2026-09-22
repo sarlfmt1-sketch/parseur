@@ -4004,7 +4004,7 @@ async function driveParseurUpload() {
         enrichedPlanning[date] = { num: val || 'repos', time: null };
       } else {
         const numStr = typeof val === 'object' ? val.num : val;
-        const svc = svcs.find(s => String(s.num) === String(numStr));
+        const svc = svcs.find(s => s.date === date) || svcs.find(s => String(s.num) === String(numStr));
         const depot     = svc?.heurePS || svc?.depotDepart;
         const firstStop = svc?.trips?.[0]?.stops?.[0]?.time?.substring(0, 5);
         const time1 = (depot     && depot     !== '00:00' ? depot     : null)
