@@ -3819,7 +3819,32 @@ function previewCancel() {
 
 
 // ══════════════════════════════════════════════════════
-// RÉCEPTION IMPORT BOOKMARKLET
+// RÉCEPTION IMPORT BOOKMARKLET (via window.name — survit à la navigation)
+// ══════════════════════════════════════════════════════
+(function fsoCheckWindowName() {
+  try {
+    if (!window.name || window.name.indexOf('"ts"') === -1) return;
+    var data = JSON.parse(window.name);
+    window.name = ''; // évite un réimport si la page est rechargée
+    if (Date.now() - data.ts > 10 * 60 * 1000) return;
+
+    if (data.planning && data.planning.length) {
+      if (data.ete) data.planning.forEach(function(jour) { jour.ete = true; });
+      previewShowPlanning(data.planning, data.mode || 'planning');
+    } else if (data.trajets && data.trajets.length) {
+      _fcTrips = [];
+      var imported2 = fsoInjectTrajets(data.trajets);
+      if (imported2 > 0) {
+        fcRenderTripsList();
+        switchTab('francilite');
+        setTimeout(function() { toast(imported2 + ' trajet(s) importes !'); }, 300);
+      }
+    }
+  } catch(e) { console.error('window.name import error:', e); }
+})();
+
+// ══════════════════════════════════════════════════════
+// RÉCEPTION IMPORT BOOKMARKLET (ancien relais postMessage, gardé en secours)
 // ══════════════════════════════════════════════════════
 (function fsoCheckImport() {
   var fsoReceived = false;
@@ -3982,9 +4007,12 @@ async function driveParseurUpload() {
         const svc = svcs.find(s => String(s.num) === String(numStr));
         const depot     = svc?.heurePS || svc?.depotDepart;
         const firstStop = svc?.trips?.[0]?.stops?.[0]?.time?.substring(0, 5);
-        const time = (depot     && depot     !== '00:00' ? depot     : null)
+        const time1 = (depot     && depot     !== '00:00' ? depot     : null)
                   || (firstStop && firstStop !== '00:00' ? firstStop : null)
                   || null;
+        const time = (svc?.coupure && svc?.heurePS2)
+                  ? `${time1 || svc.heurePS2} / ${svc.heurePS2}`
+                  : time1;
         enrichedPlanning[date] = { num: numStr, time };
       }
     }
