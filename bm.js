@@ -93,14 +93,10 @@ async function gt(date){
   var doc=new DOMParser().parseFromString(h,'text/html');
 
   var numSvc=null;
-  var bTags=doc.querySelectorAll('b');
-  for(var bi=0;bi<bTags.length;bi++){
-    if(bTags[bi].textContent.includes('Groupage')){
-      var gTxt=bTags[bi].parentElement.textContent;
-      var gm=gTxt.match(/Groupage\s*:\s*(\d+)/);
-      if(gm)numSvc=gm[1];
-      break;
-    }
+  var grpAll=h.match(/Groupage\s*:\s*(\d+)/g);
+  if(grpAll && grpAll.length){
+    var lastGrp=grpAll[grpAll.length-1].match(/(\d+)/);
+    if(lastGrp)numSvc=lastGrp[1];
   }
 
   // ── DETECTION COUPURE : tous les PS et FS ──
@@ -124,10 +120,6 @@ async function gt(date){
 
   var psIdx=h.search(/(\d{2}:\d{2})\s*-\s*PS\s*&gt;&gt;/);
   var hApresPS=psIdx>=0?h.slice(psIdx):h;
-  var numSvcPS=null;
-  var grpM=hApresPS.match(/Groupage\s*:\s*(\d+)/);
-  if(grpM)numSvcPS=grpM[1];
-  if(numSvcPS)numSvc=numSvcPS;
 
   var docApresPS=new DOMParser().parseFromString(hApresPS,'text/html');
   var els=docApresPS.querySelectorAll('[idserv]');
