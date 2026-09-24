@@ -284,23 +284,12 @@ document.getElementById('clbtn').onclick=async function(){
     }
   }
   var data=JSON.stringify({planning:pl,ts:Date.now(),mode:mode,ete:ete});
-  var w=window.open('https://sarlfmt1-sketch.github.io/parseur/?fso=1','_blank');
-  var snd=null,done=false;
-  window.addEventListener('message',function(e){
-    if(e.data&&e.data.type==='fso_ack'){
-      done=true;
-      if(snd)clearInterval(snd);
-      var oel=document.getElementById('clv');
-      if(oel)document.body.removeChild(oel);
-    }
-  });
-  snd=setInterval(function(){
-    if(!done)w.postMessage({type:'fso_import',data:data},'https://sarlfmt1-sketch.github.io');
-  },500);
-  setTimeout(function(){
-    if(snd)clearInterval(snd);
-    var oel=document.getElementById('clv');
-    if(!done&&oel)document.body.removeChild(oel);
-  },45000);
+  var w=window.open('about:blank','_blank');
+  if(w){
+    try{ w.name=data; }catch(e){}
+    w.location='https://sarlfmt1-sketch.github.io/parseur/?fso=1';
+  }
+  var oel=document.getElementById('clv');
+  if(oel)document.body.removeChild(oel);
 };
 })();
