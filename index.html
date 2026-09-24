@@ -3464,6 +3464,7 @@ function recapRender() {
   var jours=[];
 
   var daysInMonth = new Date(y,mo+1,0).getDate();
+  function toMin(h){var p=h.split(':').map(Number);return p[0]*60+p[1];}
   for(var d=1;d<=daysInMonth;d++){
     var date = new Date(y,mo,d);
     var key = y+'-'+('0'+(mo+1)).slice(-2)+'-'+('0'+d).slice(-2);
@@ -3473,11 +3474,22 @@ function recapRender() {
     var svc = svcs.find(function(s){return s.num===planVal;});
     if(!svc) continue;
 
-    // Éviter les doublons : seulement si le MÊME service apparaît le jour SUIVANT (service de nuit après minuit)
+    // Éviter les doublons : seulement si le service de la veille est un VRAI service de nuit
+    // (se termine après minuit) ET porte le même numéro — sinon c'est juste le même service
+    // travaillé deux jours de suite, qu'il faut compter normalement.
     var dateObj2 = new Date(date); dateObj2.setDate(dateObj2.getDate()-1);
     var keyVeille = dateObj2.getFullYear()+'-'+String(dateObj2.getMonth()+1).padStart(2,'0')+'-'+String(dateObj2.getDate()).padStart(2,'0');
     var svcVeille = jours.length>0 ? jours[jours.length-1] : null;
-    var dejaConte = svcVeille && svcVeille.svc.num === svc.num && svcVeille.date === keyVeille;
+    var veilleTraverseMinuit = false;
+    if(svcVeille){
+      var pv = svcVeille.svc;
+      if(pv.coupure && pv.heurePS2 && pv.heureFS2){
+        veilleTraverseMinuit = toMin(pv.heureFS2) < toMin(pv.heurePS2);
+      } else if(pv.heurePS && pv.heureFS){
+        veilleTraverseMinuit = toMin(pv.heureFS) < toMin(pv.heurePS);
+      }
+    }
+    var dejaConte = svcVeille && svcVeille.svc.num === svc.num && svcVeille.date === keyVeille && veilleTraverseMinuit;
     if(dejaConte) {
       // Quand même afficher le jour dans le tableau mais sans recompter les heures/primes
       var dow2 = date.getDay();
@@ -3494,7 +3506,6 @@ function recapRender() {
 
     // Durée travail
     var dureeMin=0;
-    function toMin(h){var p=h.split(':').map(Number);return p[0]*60+p[1];}
     if(svc.coupure && svc.heurePS && svc.heurePS2 && svc.heureFS1 && svc.heureFS2){
       // Service en coupure : matin + après-midi (sans compter la pause)
       var dMat=toMin(svc.heureFS1)-toMin(svc.heurePS); if(dMat<0)dMat+=1440;
