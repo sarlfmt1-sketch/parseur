@@ -93,7 +93,8 @@ async function gt(date){
   var doc=new DOMParser().parseFromString(h,'text/html');
 
   var numSvc=null;
-  var grpAll=h.match(/Groupage\s*:\s*(\d+)/g);
+  var pageTxt=(doc.body?doc.body.textContent:h).replace(/\s+/g,' ');
+  var grpAll=pageTxt.match(/Groupage\s*:\s*(\d+)/g);
   if(grpAll && grpAll.length){
     var lastGrp=grpAll[grpAll.length-1].match(/(\d+)/);
     if(lastGrp)numSvc=lastGrp[1];
