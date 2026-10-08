@@ -99,9 +99,14 @@ function extraireHLP(pageTxt){
     return r?{nom:r[1].trim(),ineo:r[2]}:{nom:t.trim(),ineo:''};
   }
   function dur(a,b){var d=hm(b)-hm(a);if(d<0)d+=1440;return d;}
+  // Position du premier et du dernier trajet commercial : "14:09 - 1208 - ..."
+  var reT=/(\d{2}:\d{2})\*?\s*-\s*(\d{4})\s*-\s/g, tm, premierT=-1, dernierT=-1;
+  while((tm=reT.exec(pageTxt))!==null){ if(premierT<0)premierT=tm.index; dernierT=tm.index; }
   var out=[];
   for(var i=0;i<heads.length;i++){
     var h=heads[i];
+    // On ne garde que les HLP situés ENTRE le premier et le dernier trajet
+    if(premierT<0 || h.idx<premierT || h.idx>dernierT) continue;
     var seg=pageTxt.slice(h.idx, i+1<heads.length?heads[i+1].idx:pageTxt.length);
     var de=nomIneo(h.de), a=nomIneo(h.a);
     var arrivee=null, estime=false;
@@ -241,7 +246,7 @@ document.getElementById('clbtn').onclick=async function(){
         heurePS2:res.heurePS2, heureFS1:res.heureFS1, heureFS2:res.heureFS2,
         hlp:res.hlp
       });
-      lg('   HLP: '+res.hlpTotal+' trouve(s), '+res.hlp.length+' de plus de 3 min');
+      lg('   HLP: '+res.hlpTotal+' trouve(s), '+res.hlp.length+' gardes (entre 1er et dernier trajet, +3 min)');
       lg('   OK '+tr.length+' trajets');
     }catch(e){
       lg('   ERR: '+e.message);
