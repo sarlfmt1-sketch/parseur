@@ -3067,7 +3067,7 @@ function renderServiceTab() {
       // HLP de plus de 3 minutes
       if (svc && svc.hlp && svc.hlp.length) {
         html += '<div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08)">';
-        html += '<div style="font-size:10px;color:#6b7280;font-weight:700;margin-bottom:4px">🚌 HLP (+ de 3 min)</div>';
+        html += '<div style="font-size:10px;color:#6b7280;font-weight:700;margin-bottom:4px">🚌 HLP entre trajets (+ de 3 min)</div>';
         svc.hlp.forEach(function(h) {
           html += '<div style="font-size:12px;color:#e8eaf0;margin-bottom:3px">'
             + '<b style="color:#f0a500">' + h.heure + '</b>'
@@ -3768,7 +3768,7 @@ function previewShowPlanning(planning, mode) {
       +tripsHtml
       +(svc.hlp && svc.hlp.length
         ? '<div style="margin-top:8px;padding:8px;background:rgba(240,165,0,.06);border:1px solid rgba(240,165,0,.25);border-radius:6px;font-size:11px">'
-          +'<div style="color:#f0a500;font-weight:700;margin-bottom:4px">🚌 HLP + de 3 min : '+svc.hlp.length+'</div>'
+          +'<div style="color:#f0a500;font-weight:700;margin-bottom:4px">🚌 HLP entre trajets + de 3 min : '+svc.hlp.length+'</div>'
           +svc.hlp.map(function(h){return '<div style="color:#e8eaf0">'+h.heure+(h.arrivee?'→'+h.arrivee:'')+' · <b>'+h.minutes+' min'+(h.estime?' ~':'')+'</b> · <span style="color:var(--muted)">'+h.de+' → '+h.a+'</span></div>';}).join('')
           +'</div>'
         : '')
