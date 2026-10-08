@@ -3063,6 +3063,21 @@ function renderServiceTab() {
         });
         html += '</div>';
       }
+
+      // HLP de plus de 3 minutes
+      if (svc && svc.hlp && svc.hlp.length) {
+        html += '<div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08)">';
+        html += '<div style="font-size:10px;color:#6b7280;font-weight:700;margin-bottom:4px">🚌 HLP (+ de 3 min)</div>';
+        svc.hlp.forEach(function(h) {
+          html += '<div style="font-size:12px;color:#e8eaf0;margin-bottom:3px">'
+            + '<b style="color:#f0a500">' + h.heure + '</b>'
+            + (h.arrivee ? ' → ' + h.arrivee : '')
+            + ' <span style="color:#00d4ff;font-weight:700">' + h.minutes + ' min' + (h.estime ? ' ~' : '') + '</span>'
+            + '<div style="font-size:11px;color:#9ca3af">' + h.de + ' (' + h.deIneo + ') → ' + h.a + ' (' + h.aIneo + ')</div>'
+            + '</div>';
+        });
+        html += '</div>';
+      }
     }
     html += '</div>';
   }
@@ -3698,6 +3713,7 @@ function previewBuildSvc(jour) {
     heurePS2: jour.heurePS2 || null,
     heureFS1: jour.heureFS1 || null,
     heureFS2: jour.heureFS2 || null,
+    hlp: jour.hlp || [],
     trips: _fcTrips.map(t => ({
       lineNum: t.lineNum||'?', lineColor: t.lineColor, label: t.label,
       depart: t.depart, arrivee: t.arrivee,
@@ -3750,6 +3766,12 @@ function previewShowPlanning(planning, mode) {
       +'<span style="font-size:11px;color:var(--muted)">'+(svc.heurePS||svc.depotDepart)+' \u2192 '+(svc.heureFS||svc.depotRetour)+' &bull; '+svc.trips.length+' trajets</span>'
       +'</div>'
       +tripsHtml
+      +(svc.hlp && svc.hlp.length
+        ? '<div style="margin-top:8px;padding:8px;background:rgba(240,165,0,.06);border:1px solid rgba(240,165,0,.25);border-radius:6px;font-size:11px">'
+          +'<div style="color:#f0a500;font-weight:700;margin-bottom:4px">🚌 HLP + de 3 min : '+svc.hlp.length+'</div>'
+          +svc.hlp.map(function(h){return '<div style="color:#e8eaf0">'+h.heure+(h.arrivee?'→'+h.arrivee:'')+' · <b>'+h.minutes+' min'+(h.estime?' ~':'')+'</b> · <span style="color:var(--muted)">'+h.de+' → '+h.a+'</span></div>';}).join('')
+          +'</div>'
+        : '')
       +'</div>'
       +'</div>';
   }).join('');
