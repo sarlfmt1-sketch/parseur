@@ -87,6 +87,42 @@ function ss(m){document.getElementById('cls').textContent=m;}
 function lg(m){var e=document.getElementById('clp');e.style.display='block';e.innerHTML+=m+'\n';e.scrollTop=e.scrollHeight;}
 function hm(h){var p=h.split(':');return parseInt(p[0])*60+parseInt(p[1]);}
 
+function extraireHLP(pageTxt){
+  // En-têtes : "15:27 - HLP - NOM - 267-->NOM - 780"
+  var reH=/(\d{2}:\d{2})\*?\s*-\s*HLP\s*-\s*(.+?)\s*-->\s*(.+?)(?=\s+\d{2}:\d{2}\*?\s+-\s|\s+HLP\s*:|\s*$)/g;
+  var heads=[], m;
+  while((m=reH.exec(pageTxt))!==null){
+    heads.push({idx:m.index, end:reH.lastIndex, heure:m[1], de:m[2], a:m[3]});
+  }
+  function nomIneo(t){
+    var r=t.trim().match(/^(.*?)\s*-\s*(\d+)\s*$/);
+    return r?{nom:r[1].trim(),ineo:r[2]}:{nom:t.trim(),ineo:''};
+  }
+  function dur(a,b){var d=hm(b)-hm(a);if(d<0)d+=1440;return d;}
+  var out=[];
+  for(var i=0;i<heads.length;i++){
+    var h=heads[i];
+    var seg=pageTxt.slice(h.idx, i+1<heads.length?heads[i+1].idx:pageTxt.length);
+    var de=nomIneo(h.de), a=nomIneo(h.a);
+    var arrivee=null, estime=false;
+    // 1) détail exact : "Départ à 15:27 de X - 267 Arrivée à 15:37 à Y - 780"
+    var dm=seg.match(/Départ\s+à\s+(\d{2}:\d{2})\s+de\s+.+?\s+-\s+\d+\s+Arrivée\s+à\s+(\d{2}:\d{2})\s+à\s+.+?\s+-\s+\d+/);
+    if(dm){arrivee=dm[2];}
+    else{
+      // 2) secours : l'entrée suivante est un "TA" -> son heure = arrivée (estimée)
+      var nx=pageTxt.slice(h.end).match(/(\d{2}:\d{2})\*?\s*-\s*(TA|HLP|PS|FS|\d{4})\b/);
+      if(nx && nx[2]==='TA'){arrivee=nx[1];estime=true;}
+    }
+    if(!arrivee) continue;
+    var minutes=dur(h.heure,arrivee);
+    if(minutes>3){
+      out.push({heure:h.heure,arrivee:arrivee,minutes:minutes,
+        de:de.nom,deIneo:de.ineo,a:a.nom,aIneo:a.ineo,estime:estime});
+    }
+  }
+  return {liste:out, total:heads.length};
+}
+
 async function gt(date){
   var r=await fetch('/Home/Services?dateJour='+encodeURIComponent(date),{credentials:'include'});
   var h=await r.text();
@@ -99,6 +135,8 @@ async function gt(date){
     var lastGrp=grpAll[grpAll.length-1].match(/(\d+)/);
     if(lastGrp)numSvc=lastGrp[1];
   }
+
+  var hlpRes=extraireHLP(pageTxt);
 
   // ── DETECTION COUPURE : tous les PS et FS ──
   var tousPS=[], tousFS=[];
@@ -152,7 +190,8 @@ async function gt(date){
     trajets:tr, numSvc:numSvc,
     heurePS:heurePS, heureFS:heureFS,
     coupure:estCoupure,
-    heurePS2:heurePS2, heureFS1:heureFS1, heureFS2:heureFS2
+    heurePS2:heurePS2, heureFS1:heureFS1, heureFS2:heureFS2,
+    hlp:hlpRes.liste, hlpTotal:hlpRes.total
   };
 }
 
@@ -199,8 +238,10 @@ document.getElementById('clbtn').onclick=async function(){
         date:dt, trajets:tr, numSvc:numSvc,
         heurePS:res.heurePS, heureFS:res.heureFS,
         coupure:res.coupure,
-        heurePS2:res.heurePS2, heureFS1:res.heureFS1, heureFS2:res.heureFS2
+        heurePS2:res.heurePS2, heureFS1:res.heureFS1, heureFS2:res.heureFS2,
+        hlp:res.hlp
       });
+      lg('   HLP: '+res.hlpTotal+' trouve(s), '+res.hlp.length+' de plus de 3 min');
       lg('   OK '+tr.length+' trajets');
     }catch(e){
       lg('   ERR: '+e.message);
